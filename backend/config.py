@@ -18,35 +18,56 @@ TEMP_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AppSettings(BaseModel):
-    app_name: str = "Personal Voice Translation AI OS"
-    app_version: str = "3.0.0"
-    debug: bool = os.getenv("DEBUG", "false").lower() == "true"
-    host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", "8000"))
+    app_name: str = Field(default="Personal Voice Translation AI OS", description="Application name")
+    app_version: str = Field(default="3.0.0", description="Application semantic version")
+    debug: bool = Field(
+        default_factory=lambda: os.getenv("DEBUG", "false").lower() == "true",
+        description="Debug mode toggle",
+    )
+    host: str = Field(
+        default_factory=lambda: os.getenv("HOST", "0.0.0.0"),
+        description="Server host address",
+    )
+    port: int = Field(
+        default_factory=lambda: int(os.getenv("PORT", "8000")),
+        description="Server listening port",
+    )
     
     # Security
-    jwt_secret: str = os.getenv("JWT_SECRET", "pvt-development-secret-key-32-bytes-long!")
-    jwt_algorithm: str = "HS256"
-    session_token_expire_minutes: int = 120
+    jwt_secret: str = Field(
+        default_factory=lambda: os.getenv("JWT_SECRET", "pvt-development-secret-key-32-bytes-long!"),
+        description="Secret key for JWT token signing",
+    )
+    jwt_algorithm: str = Field(default="HS256", description="JWT hashing algorithm")
+    session_token_expire_minutes: int = Field(default=120, description="Session token validity duration")
     
     # Audio & Processing Defaults
-    audio_sample_rate: int = 16000  # 16 kHz mono standard for speech
-    audio_channels: int = 1
-    chunk_size_ms: int = 100        # 100ms streaming chunks
-    silence_threshold_ms: int = 600 # Silence duration to trigger end-of-turn
+    audio_sample_rate: int = Field(default=16000, description="Audio sample rate in Hz (16 kHz mono standard)")
+    audio_channels: int = Field(default=1, description="Number of audio channels (mono)")
+    chunk_size_ms: int = Field(default=100, description="Streaming chunk buffer size in milliseconds")
+    silence_threshold_ms: int = Field(default=600, description="Silence duration in ms to trigger end of turn")
     
     # Provider Settings (Pluggable)
-    stt_provider: str = os.getenv("STT_PROVIDER", "mock")  # mock | whisper | deepgram
-    translation_provider: str = os.getenv("TRANSLATION_PROVIDER", "mock")  # mock | gemini | openai
-    tts_provider: str = os.getenv("TTS_PROVIDER", "mock")  # mock | elevenlabs | xtts
+    stt_provider: str = Field(
+        default_factory=lambda: os.getenv("STT_PROVIDER", "mock"),
+        description="Active Speech-to-Text provider (mock | whisper | deepgram)",
+    )
+    translation_provider: str = Field(
+        default_factory=lambda: os.getenv("TRANSLATION_PROVIDER", "mock"),
+        description="Active translation provider (mock | gemini | openai)",
+    )
+    tts_provider: str = Field(
+        default_factory=lambda: os.getenv("TTS_PROVIDER", "mock"),
+        description="Active voice synthesizer provider (mock | elevenlabs | xtts)",
+    )
     
     # Target Latency (ms) for observability
-    target_latency_budget_ms: int = 1500
+    target_latency_budget_ms: int = Field(default=1500, description="Target roundtrip latency ceiling in milliseconds")
     
     # Privacy / Retention
-    retain_session_transcripts: bool = False
-    retain_call_audio: bool = False
-    auto_cleanup_temp_audio: bool = True
+    retain_session_transcripts: bool = Field(default=False, description="Persist session transcripts")
+    retain_call_audio: bool = Field(default=False, description="Persist raw call audio")
+    auto_cleanup_temp_audio: bool = Field(default=True, description="Automatically purge temporary audio files")
 
 
 settings = AppSettings()
