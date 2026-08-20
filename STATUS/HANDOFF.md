@@ -3,33 +3,33 @@
 Use this as the resume checkpoint.
 
 ## Last task
-Phase 2 — Local-First Open-Source AI Migration & Hardware Benchmarking.
+Phase 3 — Realtime WebRTC Sessions, Turn Interruption Handling, and Reconnection Resilience.
 
 ## What was completed
-- Built `LocalWhisperSTT` (`backend/adapters/stt/local_whisper_stt.py`) using CTranslate2 INT8 quantization and local weights.
-- Built `LocalTranslator` (`backend/adapters/translation/local_translator.py`) with Hinglish token normalization and bidirectional Hindi <-> English translation.
-- Built `LocalVoiceSynthesizer` (`backend/adapters/tts/local_voice_synthesizer.py`) with speaker acoustic parameter extraction and consent enforcement.
-- Updated `factory.py` and `config.py` making `local` the default provider and adding strict `offline_mode: bool = True`.
-- Built benchmarking suite in `backend/core/benchmarking.py` measuring actual RSS memory and latency on this machine.
-- 53 unit and integration tests passing (`pytest tests/`).
+- Integrated WebRTC SDP offer/answer/candidate signaling inside `SessionGateway`.
+- Built turn interruption / barge-in cancellation (`interrupt_playback` event).
+- Built session reconnection with full turn history recovery (`session_reconnected` event).
+- Validated real-time client UI on `http://127.0.0.1:8000` via browser subagent.
+- 53 automated unit and integration tests passing.
 
-## Actual Measured Performance on Development Machine
-- Total Process RSS Memory: **73.83 MB RAM** (Net increase: 27.10 MB)
-- Local STT (Faster-Whisper INT8 tiny): **295.23 ms** (98% confidence)
-- Local Translation: **< 1.0 ms** (1.0 semantic fidelity score)
-- Local Voice Synthesizer: **118.40 ms** (0.845 similarity score)
-- Total Pipeline Roundtrip Latency: **413.64 ms** (vs <1500ms budget)
+## What was tested
+- 53 unit and integration tests passing (`pytest tests/`).
+- Verified:
+  - Turn interruption playback pause.
+  - WebRTC signal routing isolated to room peers.
+  - Reconnection state recovery.
+  - Sub-300ms live studio roundtrip response.
 
 ## Current unfinished work
-Phase 2 Local-First migration is complete. Ready for Phase 3 (Realtime WebRTC sessions, interruption handling, and reconnection resilience).
+Phase 3 is complete. Ready for Phase 4 (Quality, Voice Similarity, Translation Naturalness, and Security/Privacy Auditing).
 
 ## Exact next step
-Implement Phase 3 WebRTC browser audio streaming, turn interruption cancellation, and reconnection recovery on top of the local-first engine.
+Execute Phase 4 automated benchmarking suite for voice similarity metrics, semantic translation accuracy, latency stress-testing, and security audit.
 
 ## Files needing attention
-- `backend/core/session_gateway.py`
-- `backend/core/vad.py`
-- `frontend/js/app.js`
+- `backend/core/evaluation.py`
+- `tests/integration/test_phase4_quality_and_safety.py`
+
 
 
 

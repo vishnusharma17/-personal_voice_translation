@@ -23,12 +23,12 @@
 - [x] Low-memory CPU/GPU optimization (<8GB RAM compatibility)
 
 ## Phase 3 — Realtime
-- [ ] WebRTC sessions
-- [ ] Adaptive turn detection
-- [ ] Streaming synthesis
-- [ ] Interruption handling
-- [ ] Reconnect behavior
-- [ ] Session isolation
+- [x] WebRTC sessions
+- [x] Adaptive turn detection
+- [x] Streaming synthesis
+- [x] Interruption handling
+- [x] Reconnect behavior
+- [x] Session isolation
 
 ## Phase 4 — Quality & Safety
 - [ ] Voice similarity evaluation
