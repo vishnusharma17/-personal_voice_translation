@@ -1,11 +1,13 @@
 """
 Realtime Session Gateway & Isolation Manager
-Manages WebRTC / WebSocket rooms, participant state, and guarantees strict session audio isolation.
+Manages WebRTC / WebSocket rooms, participant state, turn interruption handling,
+reconnection resilience, and guarantees strict session audio isolation.
 """
 
 import asyncio
 from datetime import datetime, timezone
 import json
+import uuid
 from typing import Dict, List, Optional, Set
 from fastapi import WebSocket
 
@@ -20,8 +22,8 @@ from backend.domain.models import (
 
 class SessionGateway:
     """
-    Manages active calling rooms and realtime communication.
-    Guarantees session boundaries and translation-only delivery.
+    Manages active calling rooms, WebRTC signaling, interruption cancellation,
+    and realtime communication with strict room boundaries.
     """
 
     def __init__(self, pipeline: TranslationPipeline):
@@ -29,9 +31,9 @@ class SessionGateway:
         self._sessions: Dict[str, ConversationSession] = {}
         self._active_connections: Dict[str, Dict[str, WebSocket]] = {}  # session_id -> {participant_id: ws}
         self._conversation_history: Dict[str, List[Turn]] = {}  # session_id -> turns
+        self._active_turn_tasks: Dict[str, asyncio.Task] = {}  # session_id -> running turn task
 
     def create_session(self, host_user_id: str, room_code: Optional[str] = None) -> ConversationSession:
-        import uuid
         session_id = f"sess_{uuid.uuid4().hex[:10]}"
         room_code = room_code or uuid.uuid4().hex[:6].upper()
 
@@ -67,8 +69,23 @@ class SessionGateway:
         if not session or not session.is_active:
             return False
 
+        is_reconnect = participant.participant_id in session.participants
         session.participants[participant.participant_id] = participant
         self._active_connections[session_id][participant.participant_id] = websocket
+
+        # If reconnecting, send current session history and state
+        if is_reconnect:
+            history = self._conversation_history.get(session_id, [])
+            await websocket.send_text(
+                json.dumps({
+                    "event": "session_reconnected",
+                    "data": {
+                        "session_id": session_id,
+                        "room_code": session.room_code,
+                        "history": [t.model_dump(mode="json") for t in history],
+                    },
+                }, default=str)
+            )
 
         # Broadcast room state to all members in THIS session only
         await self.broadcast_event(
@@ -77,6 +94,7 @@ class SessionGateway:
             payload={
                 "participant_id": participant.participant_id,
                 "display_name": participant.display_name,
+                "is_reconnect": is_reconnect,
                 "participants": [
                     {
                         "participant_id": p.participant_id,
@@ -119,9 +137,9 @@ class SessionGateway:
         connections = self._active_connections.get(session_id, {})
         dead_connections: List[str] = []
 
-        message_str = json.dumps({"event": event_type, "data": payload})
+        message_str = json.dumps({"event": event_type, "data": payload}, default=str)
 
-        for pid, ws in connections.items():
+        for pid, ws in list(connections.items()):
             if exclude_participant_id and pid == exclude_participant_id:
                 continue
             try:
@@ -131,6 +149,63 @@ class SessionGateway:
 
         for pid in dead_connections:
             await self.unregister_participant(session_id, pid)
+
+    async def interrupt_session(self, session_id: str, interrupter_id: str):
+        """
+        Cancels any ongoing generation tasks in the room and commands client audio players to halt.
+        """
+        # Cancel running task if any
+        if session_id in self._active_turn_tasks:
+            task = self._active_turn_tasks[session_id]
+            if not task.done():
+                task.cancel()
+
+        await self.broadcast_event(
+            session_id=session_id,
+            event_type="interrupt_playback",
+            payload={
+                "interrupter_id": interrupter_id,
+                "timestamp": datetime.now(timezone.utc).timestamp(),
+            },
+        )
+
+    async def handle_webrtc_signal(
+        self,
+        session_id: str,
+        sender_id: str,
+        signal_type: str,
+        signal_data: dict,
+        target_id: Optional[str] = None,
+    ):
+        """
+        Routes WebRTC SDP offer, answer, and ICE candidates between peers within the same room.
+        """
+        session = self._sessions.get(session_id)
+        if not session or not session.is_active:
+            return
+
+        connections = self._active_connections.get(session_id, {})
+        payload = {
+            "signal_type": signal_type,
+            "sender_id": sender_id,
+            "data": signal_data,
+        }
+
+        if target_id and target_id in connections:
+            try:
+                await connections[target_id].send_text(
+                    json.dumps({"event": "webrtc_signal", "data": payload})
+                )
+            except Exception:
+                pass
+        else:
+            # Broadcast to all peers except sender
+            await self.broadcast_event(
+                session_id=session_id,
+                event_type="webrtc_signal",
+                payload=payload,
+                exclude_participant_id=sender_id,
+            )
 
     async def handle_turn_audio(
         self,
@@ -142,6 +217,9 @@ class SessionGateway:
         session = self._sessions.get(session_id)
         if not session or not session.is_active:
             raise ValueError(f"Session {session_id} is inactive or not found.")
+
+        # Trigger interruption check if previous generation is still pending
+        await self.interrupt_session(session_id, interrupter_id=speaker_id)
 
         speaker = session.participants.get(speaker_id)
         speaker_name = speaker.display_name if speaker else "User"
@@ -167,7 +245,6 @@ class SessionGateway:
         history.append(turn)
 
         # Broadcast turn results to room participants
-        # 1. Send text event to everyone
         await self.broadcast_event(
             session_id=session_id,
             event_type="turn_completed",
@@ -184,13 +261,11 @@ class SessionGateway:
             },
         )
 
-        # 2. In Translation-Only Mode: Send translated personal voice audio to listeners
-        # (Listeners receive translated audio in speaker's authorized personal voice)
+        # In Translation-Only Mode: Send translated personal voice audio to listeners
         if synthesized_audio and len(synthesized_audio) > 0:
             import base64
             audio_b64 = base64.b64encode(synthesized_audio).decode("ascii")
             
-            # Send audio payload to other participants (the listeners)
             for pid, ws in self._active_connections.get(session_id, {}).items():
                 if pid != speaker_id:
                     try:

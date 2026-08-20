@@ -1,6 +1,7 @@
 """
 Voice Activity Detection (VAD) & Turn Segmenter
-Analyzes real-time audio streams, detects speech vs silence, and segments conversational turns.
+Analyzes real-time audio streams, adapts to background noise floor, detects speech vs silence,
+and segments conversational turns with interruption sensitivity.
 """
 
 import math
@@ -10,8 +11,8 @@ import numpy as np
 
 class EnergyVAD:
     """
-    Streaming Energy & Zero-Crossing Rate VAD.
-    Segments continuous audio chunks into speaker turns with configurable silence threshold.
+    Streaming Noise-Adaptive Energy & Zero-Crossing Rate VAD.
+    Segments continuous audio chunks into speaker turns with dynamic noise tracking.
     """
 
     def __init__(
@@ -21,13 +22,19 @@ class EnergyVAD:
         energy_threshold_db: float = -38.0,
         silence_timeout_ms: int = 500,
         min_speech_duration_ms: int = 200,
+        adaptive_noise_tracking: bool = True,
     ):
         self.sample_rate = sample_rate
         self.frame_duration_ms = frame_duration_ms
         self.frame_size = int(sample_rate * (frame_duration_ms / 1000.0))
-        self.energy_threshold_db = energy_threshold_db
+        self.base_energy_threshold_db = energy_threshold_db
+        self.current_threshold_db = energy_threshold_db
         self.silence_timeout_ms = silence_timeout_ms
         self.min_speech_duration_ms = min_speech_duration_ms
+        self.adaptive_noise_tracking = adaptive_noise_tracking
+
+        # Adaptive noise floor estimate
+        self.noise_floor_db = -50.0
 
         # State
         self.is_speaking = False
@@ -49,9 +56,16 @@ class EnergyVAD:
         rms = np.sqrt(np.mean(samples ** 2))
         if rms <= 0:
             return -100.0
-        # Normalize against max 16-bit 32768
         db = 20 * math.log10(rms / 32768.0)
         return db
+
+    def update_adaptive_threshold(self, frame_db: float, is_speech: bool):
+        """Slowly updates noise floor estimate during silence frames."""
+        if not is_speech and self.adaptive_noise_tracking:
+            # Exponential moving average for noise floor
+            self.noise_floor_db = 0.95 * self.noise_floor_db + 0.05 * frame_db
+            # Set threshold comfortably above estimated noise floor
+            self.current_threshold_db = max(self.base_energy_threshold_db, self.noise_floor_db + 12.0)
 
     def process_chunk(self, pcm_chunk: bytes) -> Tuple[bool, Optional[bytes]]:
         """
@@ -69,7 +83,8 @@ class EnergyVAD:
                 continue
 
             frame_db = self.compute_frame_db(frame)
-            is_frame_speech = frame_db > self.energy_threshold_db
+            is_frame_speech = frame_db > self.current_threshold_db
+            self.update_adaptive_threshold(frame_db, is_frame_speech)
 
             if is_frame_speech:
                 self.speech_accumulated_ms += self.frame_duration_ms

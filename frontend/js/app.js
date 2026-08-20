@@ -76,6 +76,20 @@ function connectCall() {
         renderTurn(msg.data);
       } else if (msg.event === "translated_audio") {
         playTranslatedAudio(msg.data.audio_base64, msg.data.speaker_id);
+      } else if (msg.event === "interrupt_playback") {
+        // Stop any active audio immediately (Barge-in handling)
+        if (audioPlayer && !audioPlayer.paused) {
+          audioPlayer.pause();
+          audioPlayer.currentTime = 0;
+          document.getElementById("playback-status-text").innerText = "⚡ Playback interrupted by speaker";
+        }
+      } else if (msg.event === "session_reconnected") {
+        console.log("Session reconnected, restoring history:", msg.data);
+        if (msg.data.history && msg.data.history.length > 0) {
+          msg.data.history.forEach(turn => renderTurn(turn));
+        }
+      } else if (msg.event === "webrtc_signal") {
+        console.log("WebRTC signal received:", msg.data.signal_type);
       }
     } catch (e) {
       console.error("WS Parse Error:", e);

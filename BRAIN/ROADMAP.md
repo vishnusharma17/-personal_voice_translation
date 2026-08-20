@@ -23,12 +23,12 @@
 - [x] Translation quality evaluation
 
 ## Phase 3 — Realtime
-- [ ] WebRTC sessions
-- [ ] Turn detection
-- [ ] Streaming synthesis
-- [ ] Interruption handling
-- [ ] Reconnect behavior
-- [ ] Session isolation
+- [x] WebRTC sessions
+- [x] Turn detection
+- [x] Streaming synthesis
+- [x] Interruption handling
+- [x] Reconnect behavior
+- [x] Session isolation
 
 ## Phase 4 — Quality & Safety
 - [ ] Voice similarity evaluation

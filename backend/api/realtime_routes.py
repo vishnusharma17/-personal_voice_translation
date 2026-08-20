@@ -177,6 +177,23 @@ async def websocket_call_endpoint(
                     transcript_override=text_override,
                 )
 
+            elif event_type == "interrupt":
+                # Explicit user interruption / barge-in
+                await session_gateway.interrupt_session(session.session_id, interrupter_id=user_id)
+
+            elif event_type == "webrtc_signal":
+                # Route WebRTC SDP offer, answer, or ICE candidate to room peers
+                signal_type = data.get("signal_type", "candidate")
+                signal_data = data.get("signal_data", {})
+                target_id = data.get("target_id")
+                await session_gateway.handle_webrtc_signal(
+                    session_id=session.session_id,
+                    sender_id=user_id,
+                    signal_type=signal_type,
+                    signal_data=signal_data,
+                    target_id=target_id,
+                )
+
             elif event_type == "ping":
                 await websocket.send_text(json.dumps({"event": "pong", "timestamp": data.get("timestamp")}))
 

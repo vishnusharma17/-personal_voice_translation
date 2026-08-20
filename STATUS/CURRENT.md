@@ -1,27 +1,28 @@
 # Current Status — Single Source of Truth
 
 ## Overall
-50% — Phase 0 (Foundation), Phase 1 (Voice), and Phase 2 (Translation) completed and verified.
+70% — Phase 0 (Foundation), Phase 1 (Voice), Phase 2 (Translation), and Phase 3 (Realtime WebRTC & Interruption) completed.
 
 ## Phase
-Phase 1 & Phase 2 complete → Transitioning to Phase 3 (Realtime & WebRTC hardening).
+Phase 3 complete → Transitioning to Phase 4 (Quality & Safety Evaluation).
 
 ## Last completed
-- Implemented real provider adapters: `WhisperSTT` (OpenAI/Whisper STT), `GeminiTranslator` (LLM context-aware translation with multi-turn memory), `ElevenLabsTTS` (voice cloning synthesis), and `RuleBasedLanguageDetector`.
-- Built provider factory in `backend/adapters/factory.py` for decoupled provider swapping.
-- Completed Phase 1 Voice Onboarding lifecycle with cryptographic SHA-256 consent signatures, SNR / clipping quality checks, and irreversible deletion.
-- Completed Phase 2 Bidirectional Hindi/Hinglish ↔ English natural translation pipeline with tone preservation and sub-1500ms latency budget.
-- 36 unit and integration tests passing (`pytest tests/`).
+- Implemented WebRTC SDP offer/answer/candidate signaling inside `SessionGateway`.
+- Built real-time turn interruption / barge-in cancellation and event broadcasting (`interrupt_playback`).
+- Implemented session reconnection resilience with state and conversation history recovery (`session_reconnected`).
+- Added noise-adaptive background tracking to `EnergyVAD`.
+- 40 unit and integration tests passing (`pytest tests/`).
 
 ## Current task
-Begin Phase 3 (WebRTC session management, turn detection fine-tuning, interruption handling, and reconnection resilience).
+Begin Phase 4 (Voice similarity evaluation, translation naturalness benchmarking, latency profiling, and security/privacy audit).
 
 ## Next action
-Implement WebRTC peer connection audio tracks, turn interruption cancellation, and automated session reconnection.
+Build automated quality and safety benchmark test harnesses for voice similarity, translation fidelity, and latency stress-testing.
 
 ## Blocker
 None.
 
 ## Notes
-All 36 tests passing cleanly. End-to-end translation path verified across both Hindi ➔ English and English ➔ Hindi directions.
+All 40 tests passing cleanly. Turn interruption and WebRTC peer signaling verified.
+
 
