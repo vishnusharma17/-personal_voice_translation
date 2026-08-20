@@ -2,18 +2,11 @@
 Unit Tests: Domain Models
 """
 
-import pytest
 from backend.domain.models import (
-    AudioFormat,
-    AudioQualityMetrics,
-    ConsentRecord,
-    ConversationSession,
     Language,
     LatencyBreakdown,
     Participant,
     Turn,
-    VoiceProfile,
-    VoiceProfileStatus,
 )
 
 

@@ -4,7 +4,8 @@ Translates Hindi, Hinglish, and English turns locally with multi-turn context an
 """
 
 import asyncio
-from typing import AsyncGenerator, Dict, List, Optional
+from collections.abc import AsyncGenerator
+
 from backend.domain.interfaces import Translator
 from backend.domain.models import Language
 
@@ -16,7 +17,7 @@ class LocalTranslator(Translator):
     """
 
     # Comprehensive Conversational Phrase Knowledge Base
-    CONVERSATIONAL_MAP: Dict[str, Dict[str, str]] = {
+    CONVERSATIONAL_MAP: dict[str, dict[str, str]] = {
         "hi_to_en": {
             "kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.": (
                 "Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo."
@@ -53,7 +54,7 @@ class LocalTranslator(Translator):
     }
 
     # High-coverage Hinglish Vocabulary Normalizer
-    HINGLISH_LEXICON: Dict[str, str] = {
+    HINGLISH_LEXICON: dict[str, str] = {
         "kal": "tomorrow", "aaj": "today", "parson": "day after tomorrow",
         "meeting": "meeting", "demo": "demo", "rakh": "keep", "lete": "let's",
         "hain": "are", "hai": "is", "main": "I", "hum": "we", "aap": "you",
@@ -79,7 +80,7 @@ class LocalTranslator(Translator):
         text: str,
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[Dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> str:
         clean = text.strip()
         if not clean:
@@ -117,7 +118,7 @@ class LocalTranslator(Translator):
         text_stream: AsyncGenerator[str, None],
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[Dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> AsyncGenerator[str, None]:
         accumulated = []
         async for chunk in text_stream:

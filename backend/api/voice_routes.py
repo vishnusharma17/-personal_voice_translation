@@ -4,11 +4,18 @@ Provides endpoints for recording consent, audio quality validation, profile crea
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
 
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
-from backend.domain.models import AudioQualityMetrics, ConsentRecord, Language, VoiceProfile
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
+from backend.domain.models import (
+    AudioQualityMetrics,
+    Language,
+    VoiceProfile,
+)
 
 router = APIRouter(prefix="/api/voice", tags=["Voice Profile & Consent"])
 
@@ -84,7 +91,7 @@ async def create_profile(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/profile/{user_id}", response_model=Optional[VoiceProfile])
+@router.get("/profile/{user_id}", response_model=VoiceProfile | None)
 async def get_profile(user_id: str):
     """Retrieves user's active voice profile if authorized."""
     profile = await voice_profile_service.get_profile(user_id)
@@ -97,4 +104,9 @@ async def get_profile(user_id: str):
 async def delete_profile(user_id: str):
     """Permanently revokes consent and deletes voice profile and audio samples."""
     success = await voice_profile_service.delete_profile(user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Voice profile not found or already deleted.",
+        )
     return {"status": "success", "message": "Voice profile and all associated audio destroyed permanently."}

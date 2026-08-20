@@ -4,7 +4,8 @@ Emits realistic interim and final transcription events for Hindi, Hinglish, and 
 """
 
 import asyncio
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 from backend.domain.interfaces import SpeechRecognizer
 from backend.domain.models import Language
 
@@ -16,7 +17,7 @@ class MockSpeechRecognizer(SpeechRecognizer):
 
     def __init__(self, simulated_latency_ms: float = 80.0):
         self.simulated_latency_ms = simulated_latency_ms
-        self.test_transcript_override: Optional[str] = None
+        self.test_transcript_override: str | None = None
 
     def set_next_transcript(self, text: str):
         """Allows test harness to inject known transcript for incoming audio."""
@@ -25,7 +26,7 @@ class MockSpeechRecognizer(SpeechRecognizer):
     async def transcribe_stream(
         self,
         audio_stream: AsyncGenerator[bytes, None],
-        source_language: Optional[Language] = None,
+        source_language: Language | None = None,
     ) -> AsyncGenerator[dict, None]:
         buffer = bytearray()
         async for chunk in audio_stream:
@@ -52,7 +53,7 @@ class MockSpeechRecognizer(SpeechRecognizer):
         }
 
     async def transcribe_chunk(
-        self, audio_bytes: bytes, source_language: Optional[Language] = None
+        self, audio_bytes: bytes, source_language: Language | None = None
     ) -> dict:
         await asyncio.sleep(self.simulated_latency_ms / 1000.0)
         final_text = self.test_transcript_override or "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga."

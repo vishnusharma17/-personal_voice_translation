@@ -5,6 +5,7 @@ Defines environment variables, system constants, and runtime defaults.
 
 import os
 from pathlib import Path
+
 from pydantic import BaseModel, Field
 
 BASE_DIR = Path(__file__).resolve().parent.parent

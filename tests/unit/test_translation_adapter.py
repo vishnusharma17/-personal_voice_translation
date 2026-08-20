@@ -3,6 +3,7 @@ Unit Tests: Translation Adapter
 """
 
 import pytest
+
 from backend.adapters.translation.mock_translator import MockTranslator
 from backend.domain.models import Language
 

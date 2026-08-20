@@ -4,7 +4,8 @@ Preserves tone, formality, colloquial nuances, and conversational context across
 """
 
 import os
-from typing import AsyncGenerator, Dict, List, Optional
+from collections.abc import AsyncGenerator
+
 import httpx
 
 from backend.domain.interfaces import Translator
@@ -29,7 +30,7 @@ Strict Rules:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_name: str = "gemini-1.5-flash",
         temperature: float = 0.2,
     ):
@@ -38,7 +39,7 @@ Strict Rules:
         self.temperature = temperature
 
     def _build_context_prompt(
-        self, text: str, source_lang: Language, target_lang: Language, context: Optional[List[Dict]] = None
+        self, text: str, source_lang: Language, target_lang: Language, context: list[dict] | None = None
     ) -> str:
         prompt_parts = []
         if context and len(context) > 0:
@@ -58,7 +59,7 @@ Strict Rules:
         text: str,
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[Dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> str:
         clean_text = text.strip()
         if not clean_text:
@@ -116,7 +117,7 @@ Strict Rules:
         text_stream: AsyncGenerator[str, None],
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[Dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> AsyncGenerator[str, None]:
         accumulated = []
         async for chunk in text_stream:

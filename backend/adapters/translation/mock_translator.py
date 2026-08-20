@@ -4,7 +4,8 @@ Accurately translates Hindi/Hinglish <-> English conversational phrases while pr
 """
 
 import asyncio
-from typing import AsyncGenerator, Dict, List, Optional
+from collections.abc import AsyncGenerator
+
 from backend.domain.interfaces import Translator
 from backend.domain.models import Language
 
@@ -16,7 +17,7 @@ class MockTranslator(Translator):
     """
 
     # Direct phrase maps for conversational accuracy
-    HINDI_TO_ENGLISH_MAP: Dict[str, str] = {
+    HINDI_TO_ENGLISH_MAP: dict[str, str] = {
         "kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.": (
             "Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo."
         ),
@@ -33,7 +34,7 @@ class MockTranslator(Translator):
         "shukriya, milte hain.": "Thank you, see you soon.",
     }
 
-    ENGLISH_TO_HINDI_MAP: Dict[str, str] = {
+    ENGLISH_TO_HINDI_MAP: dict[str, str] = {
         "let's schedule the meeting for 11 tomorrow. i'll also walk you through the demo.": (
             "कल 11 बजे मीटिंग रख लेते हैं, मैं डेमो भी दिखा दूंगा।"
         ),
@@ -47,7 +48,7 @@ class MockTranslator(Translator):
     }
 
     # Lexicon fallback for arbitrary sentences
-    LEXICON_HI_EN: Dict[str, str] = {
+    LEXICON_HI_EN: dict[str, str] = {
         "kal": "tomorrow",
         "aaj": "today",
         "meeting": "meeting",
@@ -80,7 +81,7 @@ class MockTranslator(Translator):
         text: str,
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> str:
         clean_text = text.strip()
         lower_text = clean_text.lower().rstrip(".?!,")
@@ -117,7 +118,7 @@ class MockTranslator(Translator):
         text_stream: AsyncGenerator[str, None],
         source_language: Language,
         target_language: Language,
-        conversation_context: Optional[List[dict]] = None,
+        conversation_context: list[dict] | None = None,
     ) -> AsyncGenerator[str, None]:
         full_text = ""
         async for chunk in text_stream:

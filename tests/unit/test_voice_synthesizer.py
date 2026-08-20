@@ -3,7 +3,12 @@ Unit Tests: Voice Synthesizer
 """
 
 import pytest
-from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm, pcm_to_wav
+
+from backend.adapters.tts.mock_tts import (
+    MockVoiceSynthesizer,
+    generate_synthesized_pcm,
+    pcm_to_wav,
+)
 from backend.domain.models import Language, VoiceProfile
 
 

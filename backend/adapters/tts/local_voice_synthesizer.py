@@ -6,8 +6,7 @@ Synthesizes speech on-device using local neural/acoustic vocoding parameterized 
 import asyncio
 import math
 import struct
-from typing import AsyncGenerator, Optional
-import numpy as np
+from collections.abc import AsyncGenerator
 
 from backend.adapters.tts.mock_tts import pcm_to_wav
 from backend.domain.interfaces import VoiceSynthesizer

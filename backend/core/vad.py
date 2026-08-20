@@ -5,7 +5,7 @@ and segments conversational turns with interruption sensitivity.
 """
 
 import math
-from typing import List, Optional, Tuple
+
 import numpy as np
 
 
@@ -67,13 +67,13 @@ class EnergyVAD:
             # Set threshold comfortably above estimated noise floor
             self.current_threshold_db = max(self.base_energy_threshold_db, self.noise_floor_db + 12.0)
 
-    def process_chunk(self, pcm_chunk: bytes) -> Tuple[bool, Optional[bytes]]:
+    def process_chunk(self, pcm_chunk: bytes) -> tuple[bool, bytes | None]:
         """
         Processes an incoming PCM audio chunk.
         Returns:
             (is_speaking: bool, completed_turn_audio: Optional[bytes])
         """
-        completed_turn: Optional[bytes] = None
+        completed_turn: bytes | None = None
         bytes_per_frame = self.frame_size * 2
 
         # Process frame by frame

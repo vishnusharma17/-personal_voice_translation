@@ -3,14 +3,11 @@ Local Whisper Speech Recognition Adapter (Faster-Whisper / CTranslate2)
 Runs completely on-device without external API calls or network connectivity.
 """
 
-import io
-import os
-import time
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 import numpy as np
 
-from backend.adapters.tts.mock_tts import pcm_to_wav
-from backend.config import settings
+from backend.config import DATA_DIR, settings
 from backend.domain.interfaces import SpeechRecognizer
 from backend.domain.models import Language
 
@@ -40,14 +37,14 @@ class LocalWhisperSTT(SpeechRecognizer):
             try:
                 from faster_whisper import WhisperModel
                 # Load local CTranslate2 INT8 model with local_files_only in offline mode
-                model_dir = settings.DATA_DIR / "models" / "whisper" / self.model_size
+                model_dir = DATA_DIR / "models" / "whisper" / self.model_size
                 is_local = model_dir.exists()
                 self._model = WhisperModel(
                     str(model_dir) if is_local else self.model_size,
                     device=self.device,
                     compute_type=self.compute_type,
                     cpu_threads=self.cpu_threads,
-                    download_root=str(settings.DATA_DIR / "models" / "whisper"),
+                    download_root=str(DATA_DIR / "models" / "whisper"),
                     local_files_only=settings.offline_mode or is_local,
                 )
                 self._is_initialized = True
@@ -57,7 +54,7 @@ class LocalWhisperSTT(SpeechRecognizer):
                 self._model = None
 
     async def transcribe_chunk(
-        self, audio_bytes: bytes, source_language: Optional[Language] = None
+        self, audio_bytes: bytes, source_language: Language | None = None
     ) -> dict:
         if not audio_bytes or len(audio_bytes) < 3200:
             return {"text": "", "is_final": True, "confidence": 0.0, "detected_language": "unknown"}
@@ -102,7 +99,7 @@ class LocalWhisperSTT(SpeechRecognizer):
     async def transcribe_stream(
         self,
         audio_stream: AsyncGenerator[bytes, None],
-        source_language: Optional[Language] = None,
+        source_language: Language | None = None,
     ) -> AsyncGenerator[dict, None]:
         buffer = bytearray()
         async for chunk in audio_stream:

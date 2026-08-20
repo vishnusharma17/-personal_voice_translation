@@ -4,12 +4,10 @@ Enforces strict consent authorization, audio quality validation, cryptographic i
 """
 
 import hashlib
-import json
 import math
-import struct
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+
 import numpy as np
 
 from backend.config import VOICE_PROFILES_DIR
@@ -28,11 +26,11 @@ class SecureVoiceProfileService(VoiceProfileService):
     Production-grade Voice Profile Service adhering to RULES/VOICE.md and RULES/PRIVACY.md.
     """
 
-    def __init__(self, storage_dir: Optional[Path] = None):
+    def __init__(self, storage_dir: Path | None = None):
         self.storage_dir = storage_dir or VOICE_PROFILES_DIR
         self.storage_dir.mkdir(parents=True, exist_ok=True)
-        self._profiles_cache: Dict[str, VoiceProfile] = {}
-        self._consents_cache: Dict[str, ConsentRecord] = {}
+        self._profiles_cache: dict[str, VoiceProfile] = {}
+        self._consents_cache: dict[str, ConsentRecord] = {}
 
     def _compute_checksum(self, data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
@@ -95,7 +93,7 @@ class SecureVoiceProfileService(VoiceProfileService):
         clipping_rate = float(clipped_samples / max(1, sample_count))
 
         # RMS and signal power in dBFS
-        rms = np.sqrt(np.mean(samples ** 2))
+        rms = float(np.sqrt(np.mean(samples ** 2)))
         signal_db = 20 * math.log10(max(1.0, rms))
 
         # Estimate background noise floor from lowest energy frames
@@ -103,13 +101,13 @@ class SecureVoiceProfileService(VoiceProfileService):
         if sample_count >= frame_size:
             num_frames = sample_count // frame_size
             frame_energies = [
-                np.mean(samples[i * frame_size : (i + 1) * frame_size] ** 2)
+                float(np.mean(samples[i * frame_size : (i + 1) * frame_size] ** 2))
                 for i in range(num_frames)
             ]
             frame_energies.sort()
             min_energy = frame_energies[0]
             # If all frames are voiced and active, noise floor is well below signal
-            noise_rms = np.sqrt(max(1.0, min_energy))
+            noise_rms = math.sqrt(max(1.0, min_energy))
             noise_db = 20 * math.log10(noise_rms)
             
             # If min_energy is high (continuous loud voicing), baseline noise is estimated from quantization / floor
@@ -121,7 +119,7 @@ class SecureVoiceProfileService(VoiceProfileService):
             noise_db = 20.0
             snr_db = max(0.0, signal_db - noise_db)
 
-        feedback: List[str] = []
+        feedback: list[str] = []
         is_acceptable = True
 
         if duration_sec < 3.0:
@@ -190,7 +188,7 @@ class SecureVoiceProfileService(VoiceProfileService):
         self._profiles_cache[user_id] = profile
         return profile
 
-    async def get_profile(self, user_id: str) -> Optional[VoiceProfile]:
+    async def get_profile(self, user_id: str) -> VoiceProfile | None:
         return self._profiles_cache.get(user_id)
 
     async def delete_profile(self, user_id: str) -> bool:

@@ -3,8 +3,8 @@ Integration Tests: Phase 2 Local-First Migration, Offline Enforcement, and Bench
 """
 
 import pytest
+
 from backend.adapters.factory import (
-    get_language_detector,
     get_stt_adapter,
     get_translator_adapter,
     get_tts_adapter,
@@ -51,9 +51,8 @@ async def test_local_voice_synthesizer_consent_and_timbre():
 
     # Unauthorized profile must be rejected
     unauthorized_profile = VoiceProfile(
-        profile_id="unauth_1",
-        user_id="user_unauth",
         voice_id="unauth_1",
+        user_id="user_unauth",
         display_name="Unauthorized",
         status=VoiceProfileStatus.PENDING_CONSENT,
     )
@@ -62,9 +61,8 @@ async def test_local_voice_synthesizer_consent_and_timbre():
 
     # Authorized profile must produce valid WAV audio
     authorized_profile = VoiceProfile(
-        profile_id="auth_1",
-        user_id="user_auth",
         voice_id="auth_1",
+        user_id="user_auth",
         display_name="Authorized Speaker",
         status=VoiceProfileStatus.READY,
     )

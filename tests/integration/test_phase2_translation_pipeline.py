@@ -3,12 +3,15 @@ Integration Tests: Phase 2 Real-Time Conversational Translation & Contextual Mul
 """
 
 import pytest
+
 from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
 from backend.adapters.stt.whisper_stt import WhisperSTT
 from backend.adapters.translation.gemini_translator import GeminiTranslator
 from backend.adapters.tts.elevenlabs_tts import ElevenLabsTTS
 from backend.adapters.tts.mock_tts import generate_synthesized_pcm
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
 from backend.core.pipeline import TranslationPipeline
 from backend.domain.models import Language
 

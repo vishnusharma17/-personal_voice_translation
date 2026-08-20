@@ -3,6 +3,7 @@ Unit Tests: ElevenLabs Voice Synthesizer Adapter
 """
 
 import pytest
+
 from backend.adapters.tts.elevenlabs_tts import ElevenLabsTTS
 from backend.domain.models import Language, VoiceProfile, VoiceProfileStatus
 

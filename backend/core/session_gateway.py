@@ -5,10 +5,10 @@ reconnection resilience, and guarantees strict session audio isolation.
 """
 
 import asyncio
-from datetime import datetime, timezone
 import json
 import uuid
-from typing import Dict, List, Optional, Set
+from datetime import datetime, timezone
+
 from fastapi import WebSocket
 
 from backend.core.pipeline import TranslationPipeline
@@ -28,12 +28,12 @@ class SessionGateway:
 
     def __init__(self, pipeline: TranslationPipeline):
         self.pipeline = pipeline
-        self._sessions: Dict[str, ConversationSession] = {}
-        self._active_connections: Dict[str, Dict[str, WebSocket]] = {}  # session_id -> {participant_id: ws}
-        self._conversation_history: Dict[str, List[Turn]] = {}  # session_id -> turns
-        self._active_turn_tasks: Dict[str, asyncio.Task] = {}  # session_id -> running turn task
+        self._sessions: dict[str, ConversationSession] = {}
+        self._active_connections: dict[str, dict[str, WebSocket]] = {}  # session_id -> {participant_id: ws}
+        self._conversation_history: dict[str, list[Turn]] = {}  # session_id -> turns
+        self._active_turn_tasks: dict[str, asyncio.Task] = {}  # session_id -> running turn task
 
-    def create_session(self, host_user_id: str, room_code: Optional[str] = None) -> ConversationSession:
+    def create_session(self, host_user_id: str, room_code: str | None = None) -> ConversationSession:
         session_id = f"sess_{uuid.uuid4().hex[:10]}"
         room_code = room_code or uuid.uuid4().hex[:6].upper()
 
@@ -50,10 +50,10 @@ class SessionGateway:
         self._conversation_history[session_id] = []
         return session
 
-    def get_session(self, session_id: str) -> Optional[ConversationSession]:
+    def get_session(self, session_id: str) -> ConversationSession | None:
         return self._sessions.get(session_id)
 
-    def get_session_by_code(self, room_code: str) -> Optional[ConversationSession]:
+    def get_session_by_code(self, room_code: str) -> ConversationSession | None:
         for s in self._sessions.values():
             if s.room_code.upper() == room_code.upper() and s.is_active:
                 return s
@@ -131,11 +131,11 @@ class SessionGateway:
         session_id: str,
         event_type: str,
         payload: dict,
-        exclude_participant_id: Optional[str] = None,
+        exclude_participant_id: str | None = None,
     ):
         """Dispatches JSON events strictly to clients within the given session."""
         connections = self._active_connections.get(session_id, {})
-        dead_connections: List[str] = []
+        dead_connections: list[str] = []
 
         message_str = json.dumps({"event": event_type, "data": payload}, default=str)
 
@@ -175,7 +175,7 @@ class SessionGateway:
         sender_id: str,
         signal_type: str,
         signal_data: dict,
-        target_id: Optional[str] = None,
+        target_id: str | None = None,
     ):
         """
         Routes WebRTC SDP offer, answer, and ICE candidates between peers within the same room.
@@ -212,7 +212,7 @@ class SessionGateway:
         session_id: str,
         speaker_id: str,
         audio_bytes: bytes,
-        transcript_override: Optional[str] = None,
+        transcript_override: str | None = None,
     ) -> Turn:
         session = self._sessions.get(session_id)
         if not session or not session.is_active:
@@ -232,15 +232,24 @@ class SessionGateway:
             for t in history[-5:]
         ]
 
-        turn, synthesized_audio = await self.pipeline.process_turn(
-            session_id=session_id,
-            speaker_id=speaker_id,
-            speaker_name=speaker_name,
-            audio_bytes=audio_bytes,
-            source_language_hint=source_lang,
-            conversation_context=context_payload,
-            transcript_override=transcript_override,
-        )
+        # Track current turn task for instantaneous barge-in cancellation
+        current_t = asyncio.current_task()
+        if current_t:
+            self._active_turn_tasks[session_id] = current_t
+
+        try:
+            turn, synthesized_audio = await self.pipeline.process_turn(
+                session_id=session_id,
+                speaker_id=speaker_id,
+                speaker_name=speaker_name,
+                audio_bytes=audio_bytes,
+                source_language_hint=source_lang,
+                conversation_context=context_payload,
+                transcript_override=transcript_override,
+            )
+        finally:
+            if self._active_turn_tasks.get(session_id) == current_t:
+                self._active_turn_tasks.pop(session_id, None)
 
         history.append(turn)
 

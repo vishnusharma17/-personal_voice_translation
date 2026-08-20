@@ -5,18 +5,18 @@ Measures actual RAM, CPU latency, translation accuracy, and voice identity param
 
 import os
 import time
-from typing import Dict, Any
-import numpy as np
+from typing import Any
+
 import psutil
 
-from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
 from backend.adapters.stt.local_whisper_stt import LocalWhisperSTT
 from backend.adapters.translation.local_translator import LocalTranslator
 from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
 from backend.adapters.tts.mock_tts import generate_synthesized_pcm, pcm_to_wav
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
-from backend.core.evaluation import LatencyBenchmark, TranslationQualityEvaluator, VoiceSimilarityEvaluator
-from backend.core.pipeline import TranslationPipeline
+from backend.core.evaluation import (
+    TranslationQualityEvaluator,
+    VoiceSimilarityEvaluator,
+)
 from backend.domain.models import Language, VoiceProfile, VoiceProfileStatus
 
 
@@ -26,7 +26,7 @@ def get_current_process_memory_mb() -> float:
     return round(process.memory_info().rss / (1024 * 1024), 2)
 
 
-async def benchmark_local_stt() -> Dict[str, Any]:
+async def benchmark_local_stt() -> dict[str, Any]:
     """Benchmarks local STT for memory and latency."""
     mem_before = get_current_process_memory_mb()
     stt_tiny = LocalWhisperSTT(model_size="tiny")
@@ -50,7 +50,7 @@ async def benchmark_local_stt() -> Dict[str, Any]:
     }
 
 
-async def benchmark_local_translation() -> Dict[str, Any]:
+async def benchmark_local_translation() -> dict[str, Any]:
     """Benchmarks local translation for latency and Hinglish fidelity."""
     translator = LocalTranslator(simulated_latency_ms=30.0)
     test_input = "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga."
@@ -72,13 +72,12 @@ async def benchmark_local_translation() -> Dict[str, Any]:
     }
 
 
-async def benchmark_local_voice_synthesis() -> Dict[str, Any]:
+async def benchmark_local_voice_synthesis() -> dict[str, Any]:
     """Benchmarks local voice synthesizer for timbre similarity and latency."""
     synthesizer = LocalVoiceSynthesizer(simulated_latency_ms=45.0)
     profile = VoiceProfile(
-        profile_id="bench_prof_1",
-        user_id="user_bench",
         voice_id="bench_prof_1",
+        user_id="user_bench",
         display_name="Benchmark Speaker",
         status=VoiceProfileStatus.READY,
     )
@@ -101,7 +100,7 @@ async def benchmark_local_voice_synthesis() -> Dict[str, Any]:
     }
 
 
-async def run_full_local_pipeline_benchmark() -> Dict[str, Any]:
+async def run_full_local_pipeline_benchmark() -> dict[str, Any]:
     """Runs full pipeline benchmark measuring actual latency and process RAM."""
     initial_ram_mb = get_current_process_memory_mb()
 

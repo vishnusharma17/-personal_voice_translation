@@ -6,7 +6,8 @@ Generates audio output parameterized by authorized voice profile identity.
 import asyncio
 import math
 import struct
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from backend.domain.interfaces import VoiceSynthesizer
 from backend.domain.models import Language, VoiceProfile
 

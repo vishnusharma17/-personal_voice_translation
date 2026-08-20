@@ -3,15 +3,22 @@ Integration Tests: Phase 4 Quality, Voice Similarity, Translation Naturalness, L
 """
 
 import pytest
+
 from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
 from backend.adapters.stt.local_whisper_stt import LocalWhisperSTT
-from backend.adapters.stt.mock_stt import MockSpeechRecognizer
 from backend.adapters.translation.local_translator import LocalTranslator
-from backend.adapters.translation.mock_translator import MockTranslator
 from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
-from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm, pcm_to_wav
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
-from backend.core.evaluation import LatencyBenchmark, TranslationQualityEvaluator, VoiceSimilarityEvaluator
+from backend.adapters.tts.mock_tts import (
+    generate_synthesized_pcm,
+)
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
+from backend.core.evaluation import (
+    LatencyBenchmark,
+    TranslationQualityEvaluator,
+    VoiceSimilarityEvaluator,
+)
 from backend.core.pipeline import TranslationPipeline
 from backend.core.security import create_access_token, verify_access_token
 from backend.domain.models import Language, VoiceProfile, VoiceProfileStatus

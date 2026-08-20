@@ -3,6 +3,7 @@ Unit Tests: Whisper STT Adapter
 """
 
 import pytest
+
 from backend.adapters.stt.whisper_stt import WhisperSTT
 from backend.domain.models import Language
 

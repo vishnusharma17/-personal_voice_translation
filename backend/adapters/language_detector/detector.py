@@ -4,6 +4,7 @@ Identifies Hindi (Devanagari & Latin script Hinglish) and English speech/text.
 """
 
 import re
+
 from backend.domain.interfaces import LanguageDetector
 from backend.domain.models import Language
 
@@ -47,9 +48,7 @@ class RuleBasedLanguageDetector(LanguageDetector):
         hinglish_matches = sum(1 for w in words if w in self.HINGLISH_KEYWORDS)
         hinglish_ratio = hinglish_matches / len(words)
 
-        if hinglish_ratio >= 0.25:
-            return Language.HINGLISH
-        elif hinglish_matches > 0 and len(words) <= 4:
+        if hinglish_ratio >= 0.25 or hinglish_matches > 0 and len(words) <= 4:
             return Language.HINGLISH
 
         return Language.ENGLISH

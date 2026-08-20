@@ -14,7 +14,9 @@ from backend.adapters.translation.mock_translator import MockTranslator
 from backend.adapters.tts.elevenlabs_tts import ElevenLabsTTS
 from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
 from backend.adapters.tts.mock_tts import MockVoiceSynthesizer
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
 from backend.config import settings
 from backend.domain.interfaces import (
     LanguageDetector,

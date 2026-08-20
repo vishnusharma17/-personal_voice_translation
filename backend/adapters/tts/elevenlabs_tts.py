@@ -4,7 +4,8 @@ Synthesizes speech in authorized user voice using ElevenLabs Instant Voice Clone
 """
 
 import os
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 import httpx
 
 from backend.domain.interfaces import VoiceSynthesizer
@@ -18,7 +19,7 @@ class ElevenLabsTTS(VoiceSynthesizer):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_id: str = "eleven_multilingual_v2",
         timeout_sec: float = 10.0,
     ):

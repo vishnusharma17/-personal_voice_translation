@@ -4,6 +4,7 @@ Authentication & Session Token API Routes
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+
 from backend.core.security import create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])

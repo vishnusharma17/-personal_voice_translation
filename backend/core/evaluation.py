@@ -4,12 +4,7 @@ Provides automated benchmarks for Voice Identity Similarity, Translation Quality
 Latency Budget Profiling (p50/p95/p99), and Security/Privacy Auditing.
 """
 
-import math
-import time
-from typing import Dict, List, Tuple
 import numpy as np
-
-from backend.domain.models import Turn, VoiceProfile
 
 
 class VoiceSimilarityEvaluator:
@@ -32,7 +27,7 @@ class VoiceSimilarityEvaluator:
     @classmethod
     def evaluate_voice_similarity(
         cls, reference_pcm: bytes, synthesized_pcm: bytes
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         centroid_ref = cls.compute_spectral_centroid(reference_pcm)
         centroid_syn = cls.compute_spectral_centroid(synthesized_pcm)
 
@@ -66,7 +61,7 @@ class TranslationQualityEvaluator:
     @classmethod
     def evaluate_turn_quality(
         cls, translated_text: str, reference_ground_truth: str
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         overlap = cls.compute_word_overlap(translated_text, reference_ground_truth)
         # Score based on lexical and intent match
         score = 1.0 if translated_text.lower().strip() == reference_ground_truth.lower().strip() else overlap
@@ -84,7 +79,7 @@ class LatencyBenchmark:
     """
 
     @staticmethod
-    def compute_percentiles(latencies_ms: List[float]) -> Dict[str, float]:
+    def compute_percentiles(latencies_ms: list[float]) -> dict[str, float]:
         if not latencies_ms:
             return {"p50": 0.0, "p95": 0.0, "p99": 0.0, "max": 0.0, "meets_target": True}
 

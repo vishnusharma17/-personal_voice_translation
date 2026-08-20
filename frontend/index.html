@@ -120,6 +120,12 @@
                 <span class="btn-icon">⚡</span>
                 <span id="call-btn-text">Connect Live Call</span>
               </button>
+              <button class="btn btn-secondary" id="toggle-live-mic-btn" onclick="toggleLiveMicrophone()">
+                <span>🎙️ Live Mic (VAD)</span>
+              </button>
+              <button class="btn btn-secondary" onclick="triggerManualBargeIn()" title="Interrupt active audio playback">
+                <span>⚡ Interrupt</span>
+              </button>
               <button class="btn btn-secondary" onclick="generateNewRoom()">
                 <span>New Room</span>
               </button>
@@ -128,7 +134,7 @@
             <!-- Live Audio Visualizer -->
             <div class="visualizer-container">
               <div class="visualizer-header">
-                <span>Live Audio Stream</span>
+                <span>Live Audio Stream (Real-Time VAD)</span>
                 <span id="mic-status-label" class="badge">Idle</span>
               </div>
               <canvas id="visualizer-canvas" width="360" height="70"></canvas>

@@ -4,10 +4,14 @@ Unit Tests: Secure Voice Profile Service & Consent
 
 import tempfile
 from pathlib import Path
+
 import pytest
+
 from backend.adapters.tts.mock_tts import generate_synthesized_pcm
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
-from backend.domain.models import Language, VoiceProfileStatus
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
+from backend.domain.models import VoiceProfileStatus
 
 
 @pytest.fixture

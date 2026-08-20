@@ -2,7 +2,6 @@
 Unit Tests: Voice Activity Detection (VAD)
 """
 
-import pytest
 from backend.adapters.tts.mock_tts import generate_synthesized_pcm
 from backend.core.vad import EnergyVAD
 
@@ -28,5 +27,6 @@ def test_vad_speech_and_turn_segmentation():
     # 2. Provide 400ms of silence (12800 bytes at 16kHz 16-bit) to close turn
     silence_pcm = b"\x00\x00" * 6400
     is_speaking_after, completed_turn = vad.process_chunk(silence_pcm)
+    assert is_speaking_after is False
     assert completed_turn is not None
     assert len(completed_turn) > 0

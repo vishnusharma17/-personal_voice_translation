@@ -4,7 +4,7 @@ Realtime Room and WebSocket Gateway API Routes
 
 import base64
 import json
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel
 
@@ -17,7 +17,7 @@ from backend.adapters.factory import (
 )
 from backend.core.pipeline import TranslationPipeline
 from backend.core.session_gateway import SessionGateway
-from backend.domain.models import Language, Participant, Turn
+from backend.domain.models import Language, Participant
 
 router = APIRouter(tags=["Realtime Gateway"])
 
@@ -41,7 +41,7 @@ session_gateway = SessionGateway(pipeline=pipeline)
 
 class CreateRoomRequest(BaseModel):
     host_user_id: str
-    room_code: Optional[str] = None
+    room_code: str | None = None
 
 
 class CreateRoomResponse(BaseModel):
@@ -51,13 +51,13 @@ class CreateRoomResponse(BaseModel):
 
 
 class TranslateTurnRequest(BaseModel):
-    session_id: Optional[str] = "demo_session"
+    session_id: str | None = "demo_session"
     speaker_id: str = "user_1"
     speaker_name: str = "Speaker A"
-    text_prompt: Optional[str] = None
-    audio_base64: Optional[str] = None
-    source_language: Optional[str] = "hi"
-    target_language: Optional[str] = "en"
+    text_prompt: str | None = None
+    audio_base64: str | None = None
+    source_language: str | None = "hi"
+    target_language: str | None = "en"
 
 
 @router.post("/api/rooms/create", response_model=CreateRoomResponse)

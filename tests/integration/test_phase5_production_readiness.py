@@ -3,8 +3,10 @@ Integration Tests: Phase 5 Production Readiness, Health, and Environment Sanity
 """
 
 from pathlib import Path
-import pytest
+
 import httpx
+import pytest
+
 from backend.config import settings
 from backend.main import app
 

@@ -3,11 +3,14 @@ Integration Tests: End-to-End Pipeline
 """
 
 import pytest
+
 from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
 from backend.adapters.stt.mock_stt import MockSpeechRecognizer
 from backend.adapters.translation.mock_translator import MockTranslator
 from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
 from backend.core.pipeline import TranslationPipeline
 from backend.domain.models import Language
 

@@ -3,8 +3,11 @@ Integration Tests: Phase 1 Voice Onboarding, Quality Validation, and Security Li
 """
 
 import pytest
+
 from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm
-from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
+from backend.adapters.voice_profile.secure_profile_service import (
+    SecureVoiceProfileService,
+)
 from backend.domain.models import Language, VoiceProfileStatus
 
 
@@ -47,7 +50,7 @@ async def test_full_phase1_voice_onboarding_lifecycle():
     )
     assert profile.status == VoiceProfileStatus.READY
     assert profile.voice_id.startswith(f"vp_{user_id}_")
-    assert profile.quality_metrics.is_acceptable is True
+    assert profile.quality_metrics is not None and profile.quality_metrics.is_acceptable is True
 
     # 4. Step 4: Voice Synthesis with Authorized Profile
     tts = MockVoiceSynthesizer(simulated_latency_ms=20.0)

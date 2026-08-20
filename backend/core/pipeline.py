@@ -5,7 +5,6 @@ Orchestrates Audio -> STT -> Language/Context -> Translation -> Personal Voice S
 
 import time
 import uuid
-from typing import AsyncGenerator, Dict, List, Optional, Tuple
 
 from backend.domain.interfaces import (
     LanguageDetector,
@@ -48,11 +47,11 @@ class TranslationPipeline:
         speaker_id: str,
         speaker_name: str,
         audio_bytes: bytes,
-        source_language_hint: Optional[Language] = None,
-        target_language_preference: Optional[Language] = None,
-        conversation_context: Optional[List[dict]] = None,
-        transcript_override: Optional[str] = None,
-    ) -> Tuple[Turn, bytes]:
+        source_language_hint: Language | None = None,
+        target_language_preference: Language | None = None,
+        conversation_context: list[dict] | None = None,
+        transcript_override: str | None = None,
+    ) -> tuple[Turn, bytes]:
         """
         Executes complete turn translation and personal voice synthesis pipeline.
         Returns Turn metadata along with synthesized audio payload.
@@ -73,7 +72,7 @@ class TranslationPipeline:
         t1 = time.perf_counter()
         latency.stt_ms = round((t1 - t0) * 1000.0, 2)
 
-        source_text = stt_result.get("text", "").strip()
+        source_text = str(stt_result.get("text", "")).strip()
         if not source_text:
             # Empty turn
             latency.compute_total()
@@ -94,6 +93,8 @@ class TranslationPipeline:
         # 2. Language Detection & Direction Assignment
         detected_lang = await self.lang_detector.detect_language(source_text)
         
+        effective_source: Language
+        effective_target: Language
         if detected_lang in (Language.HINDI, Language.HINGLISH):
             effective_source = detected_lang
             effective_target = target_language_preference or Language.ENGLISH
@@ -143,7 +144,7 @@ class TranslationPipeline:
             target_language=effective_target,
             source_text=source_text,
             translated_text=translated_text,
-            confidence=stt_result.get("confidence", 1.0),
+            confidence=float(stt_result["confidence"]) if "confidence" in stt_result and isinstance(stt_result["confidence"], (int, float)) else 1.0,
             is_final=True,
             latency=latency,
         )

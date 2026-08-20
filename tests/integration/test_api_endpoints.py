@@ -2,9 +2,9 @@
 Integration Tests: FastAPI HTTP Endpoints
 """
 
-import io
-import pytest
 import httpx
+import pytest
+
 from backend.main import app
 
 

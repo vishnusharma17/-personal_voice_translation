@@ -5,7 +5,7 @@ Core entities and data structures for Personal Voice Translation.
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -37,7 +37,7 @@ class AudioQualityMetrics(BaseModel):
     background_noise_db: float = Field(..., description="Estimated background noise floor in dB")
     duration_sec: float = Field(..., description="Duration of audio sample in seconds")
     is_acceptable: bool = Field(..., description="Whether sample meets high-quality synthesis bar")
-    feedback: List[str] = Field(default_factory=list, description="Actionable advice if quality is low")
+    feedback: list[str] = Field(default_factory=list, description="Actionable advice if quality is low")
 
 
 class ConsentRecord(BaseModel):
@@ -48,7 +48,7 @@ class ConsentRecord(BaseModel):
     signature_hash: str
     audio_sample_checksum: str
     is_revoked: bool = False
-    revoked_at: Optional[datetime] = None
+    revoked_at: datetime | None = None
 
 
 class VoiceProfile(BaseModel):
@@ -59,9 +59,9 @@ class VoiceProfile(BaseModel):
     target_language: Language = Language.ENGLISH
     status: VoiceProfileStatus = VoiceProfileStatus.PENDING_CONSENT
     sample_duration_sec: float = 0.0
-    quality_metrics: Optional[AudioQualityMetrics] = None
-    consent_id: Optional[str] = None
-    embedding_ref: Optional[str] = None
+    quality_metrics: AudioQualityMetrics | None = None
+    consent_id: str | None = None
+    embedding_ref: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -100,7 +100,7 @@ class Participant(BaseModel):
     display_name: str
     preferred_speaking_language: Language = Language.HINDI
     preferred_listening_language: Language = Language.ENGLISH
-    voice_profile_id: Optional[str] = None
+    voice_profile_id: str | None = None
     translation_only_mode: bool = True  # Listener receives only synthesized translation
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -109,11 +109,11 @@ class ConversationSession(BaseModel):
     session_id: str
     room_code: str
     host_user_id: str
-    participants: Dict[str, Participant] = Field(default_factory=dict)
+    participants: dict[str, Participant] = Field(default_factory=dict)
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    started_at: Optional[datetime] = None
-    ended_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
 
 
 class TranslationEvent(BaseModel):

@@ -5,7 +5,8 @@ Integrates OpenAI Whisper API and local whisper-compatible streaming STT endpoin
 
 import io
 import os
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 import httpx
 
 from backend.adapters.tts.mock_tts import pcm_to_wav
@@ -20,8 +21,8 @@ class WhisperSTT(SpeechRecognizer):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_base: Optional[str] = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
         model_name: str = "whisper-1",
         timeout_sec: float = 8.0,
     ):
@@ -31,7 +32,7 @@ class WhisperSTT(SpeechRecognizer):
         self.timeout_sec = timeout_sec
 
     async def transcribe_chunk(
-        self, audio_bytes: bytes, source_language: Optional[Language] = None
+        self, audio_bytes: bytes, source_language: Language | None = None
     ) -> dict:
         if not audio_bytes or len(audio_bytes) < 3200:
             return {"text": "", "is_final": True, "confidence": 0.0, "detected_language": "unknown"}
@@ -85,7 +86,7 @@ class WhisperSTT(SpeechRecognizer):
     async def transcribe_stream(
         self,
         audio_stream: AsyncGenerator[bytes, None],
-        source_language: Optional[Language] = None,
+        source_language: Language | None = None,
     ) -> AsyncGenerator[dict, None]:
         buffer = bytearray()
         async for chunk in audio_stream:
