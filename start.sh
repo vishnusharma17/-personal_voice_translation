@@ -9,14 +9,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-HOST="${HOST:-127.0.0.1}"
+HOST="${HOST:-0.0.0.0}"
 PID_FILE="$ROOT_DIR/.server.pid"
 PORT_FILE="$ROOT_DIR/.server.port"
 LOG_FILE="$ROOT_DIR/.local_server.log"
 
+# Detect Mac's local LAN IP address
+LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1 || echo "127.0.0.1")
+
 echo "================================================================="
 echo "  🎙️  Starting VoiceBridge — Personal Voice Translation AI OS"
 echo "  📍  Mode: 100% LOCAL-FIRST (Air-Gapped / Strict Offline)"
+echo "  📡  LAN IP: $LAN_IP"
 echo "================================================================="
 
 # 1. Verify / Setup Python Environment
@@ -100,31 +104,34 @@ echo "$SERVER_PID" > "$PID_FILE"
 echo "$PORT" > "$PORT_FILE"
 
 # 7. Perform Health Check Polling
-echo "⏳ Initializing local engine & audio gateway..."
+echo "⏳ Initializing local neural models & audio gateway..."
 sleep 1.5
 
 if kill -0 "$SERVER_PID" 2>/dev/null; then
     HEALTHY=1
+else
+    HEALTHY=0
 fi
 
 if [ $HEALTHY -eq 1 ]; then
     echo ""
     echo "================================================================="
-    echo "  ✅ VoiceBridge is LIVE and Ready on Your Mac!"
+    echo "  ✅ VoiceBridge is LIVE and Ready on Your Mac & Local Network!"
     echo "================================================================="
     echo ""
-    echo "  🌐 Live Studio URL:      http://$HOST:$PORT/"
-    echo "  📊 Health Check:         http://$HOST:$PORT/api/health"
-    echo "  📚 API Documentation:    http://$HOST:$PORT/docs"
+    echo "  💻 Device A (This Mac):     http://localhost:$PORT/"
+    echo "  📱 Device B (Phone / LAN):  http://$LAN_IP:$PORT/"
+    echo "  📊 Health Check:            http://localhost:$PORT/api/health"
+    echo "  📚 API Documentation:       http://localhost:$PORT/docs"
     echo ""
-    echo "  👥 HOW TO TEST 2-PARTY CONVERSATION:"
-    echo "     1. Speaker 1 (You):   Open http://$HOST:$PORT/ in Chrome/Safari"
-    echo "     2. Speaker 2 (Peer):  Open http://$HOST:$PORT/ in a 2nd browser window or Incognito"
-    echo "     3. In both windows, verify you are in the SAME Room Code (e.g. PVT-DEMO)"
-    echo "     4. Click 'Connect Live Call' in both windows and start talking!"
+    echo "  👥 2-DEVICE REAL-WORLD CONVERSATION SETUP:"
+    echo "     1. On Device A (Mac):    Open http://localhost:$PORT/ in Chrome/Safari"
+    echo "     2. On Device B (Phone):  Connect to same Wi-Fi & open http://$LAN_IP:$PORT/"
+    echo "     3. In both devices:      Verify Room Code is identical (e.g. PVT-DEMO)"
+    echo "     4. On both devices:      Click 'Connect Live Call' and start speaking!"
     echo ""
     echo "  🔒 Local Guarantee: 0 External AI Calls | 0 Cloud Dependencies"
-    echo "  🛑 To stop the server:   ./stop.sh"
+    echo "  🛑 To stop the server:      ./stop.sh"
     echo "================================================================="
     echo ""
 else

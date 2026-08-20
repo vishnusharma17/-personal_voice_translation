@@ -35,3 +35,6 @@ data/temp_audio/
 data/sessions/
 data/cache/
 *.log
+.server.pid
+.server.port
+.local_server.log
