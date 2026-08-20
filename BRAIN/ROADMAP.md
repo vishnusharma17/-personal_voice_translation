@@ -9,18 +9,18 @@
 - [x] Establish testing infrastructure
 
 ## Phase 1 — Voice
-- [ ] Voice onboarding
-- [ ] Consent/authorization
-- [ ] Voice quality validation
-- [ ] Secure voice profile
-- [ ] Voice deletion/reset
+- [x] Voice onboarding
+- [x] Consent/authorization
+- [x] Voice quality validation
+- [x] Secure voice profile
+- [x] Voice deletion/reset
 
 ## Phase 2 — Translation
-- [ ] Streaming speech recognition
-- [ ] Hindi/Hinglish ↔ English
-- [ ] Context-aware translation
-- [ ] Naturalization
-- [ ] Translation quality evaluation
+- [x] Streaming speech recognition
+- [x] Hindi/Hinglish ↔ English
+- [x] Context-aware translation
+- [x] Naturalization
+- [x] Translation quality evaluation
 
 ## Phase 3 — Realtime
 - [ ] WebRTC sessions

@@ -1,28 +1,27 @@
 # Current Status — Single Source of Truth
 
 ## Overall
-20% — Phase 0 Foundation complete & verified.
+50% — Phase 0 (Foundation), Phase 1 (Voice), and Phase 2 (Translation) completed and verified.
 
 ## Phase
-Phase 0 complete → Transitioning to Phase 1 (Voice) & Phase 2 (Translation).
+Phase 1 & Phase 2 complete → Transitioning to Phase 3 (Realtime & WebRTC hardening).
 
 ## Last completed
-- Technical stack locked: FastAPI, WebSockets/WebRTC signaling, Python async pipeline, glassmorphism web client.
-- Domain models and provider interfaces created: `SpeechRecognizer`, `LanguageDetector`, `Translator`, `VoiceSynthesizer`, `VoiceProfileService`.
-- Secure voice profile service with explicit consent signatures and SNR audio quality validation.
-- VAD, streaming translation pipeline, and strict session isolation gateway implemented.
-- 28 unit and integration tests passing.
-- Browser end-to-end verified on live local instance (`http://127.0.0.1:8000`).
+- Implemented real provider adapters: `WhisperSTT` (OpenAI/Whisper STT), `GeminiTranslator` (LLM context-aware translation with multi-turn memory), `ElevenLabsTTS` (voice cloning synthesis), and `RuleBasedLanguageDetector`.
+- Built provider factory in `backend/adapters/factory.py` for decoupled provider swapping.
+- Completed Phase 1 Voice Onboarding lifecycle with cryptographic SHA-256 consent signatures, SNR / clipping quality checks, and irreversible deletion.
+- Completed Phase 2 Bidirectional Hindi/Hinglish ↔ English natural translation pipeline with tone preservation and sub-1500ms latency budget.
+- 36 unit and integration tests passing (`pytest tests/`).
 
 ## Current task
-Begin Phase 1 (Voice Onboarding & Quality) and Phase 2 (Advanced Streaming Translation).
+Begin Phase 3 (WebRTC session management, turn detection fine-tuning, interruption handling, and reconnection resilience).
 
 ## Next action
-Proceed with provider integrations (Whisper / Gemini / ElevenLabs adapters) and multi-turn conversational evaluation.
+Implement WebRTC peer connection audio tracks, turn interruption cancellation, and automated session reconnection.
 
 ## Blocker
 None.
 
 ## Notes
-All tests passing (28/28). Latency budget is well under the 1500ms target (~270ms in local testing).
+All 36 tests passing cleanly. End-to-end translation path verified across both Hindi ➔ English and English ➔ Hindi directions.
 

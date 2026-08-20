@@ -8,22 +8,25 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel
 
-from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
-from backend.adapters.stt.mock_stt import MockSpeechRecognizer
-from backend.adapters.translation.mock_translator import MockTranslator
-from backend.adapters.tts.mock_tts import MockVoiceSynthesizer
-from backend.api.voice_routes import voice_profile_service
+from backend.adapters.factory import (
+    get_language_detector,
+    get_stt_adapter,
+    get_translator_adapter,
+    get_tts_adapter,
+    get_voice_profile_service,
+)
 from backend.core.pipeline import TranslationPipeline
 from backend.core.session_gateway import SessionGateway
 from backend.domain.models import Language, Participant, Turn
 
 router = APIRouter(tags=["Realtime Gateway"])
 
-# Initialize default providers and pipeline
-stt_adapter = MockSpeechRecognizer()
-lang_detector = RuleBasedLanguageDetector()
-translator_adapter = MockTranslator()
-tts_adapter = MockVoiceSynthesizer()
+# Initialize providers and pipeline via factory
+voice_profile_service = get_voice_profile_service()
+stt_adapter = get_stt_adapter()
+lang_detector = get_language_detector()
+translator_adapter = get_translator_adapter()
+tts_adapter = get_tts_adapter()
 
 pipeline = TranslationPipeline(
     stt=stt_adapter,
