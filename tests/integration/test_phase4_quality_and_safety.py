@@ -4,20 +4,41 @@ Integration Tests: Phase 4 Quality, Voice Similarity, Translation Naturalness, L
 
 import pytest
 from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
+from backend.adapters.stt.local_whisper_stt import LocalWhisperSTT
 from backend.adapters.stt.mock_stt import MockSpeechRecognizer
+from backend.adapters.translation.local_translator import LocalTranslator
 from backend.adapters.translation.mock_translator import MockTranslator
-from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm
+from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
+from backend.adapters.tts.mock_tts import MockVoiceSynthesizer, generate_synthesized_pcm, pcm_to_wav
 from backend.adapters.voice_profile.secure_profile_service import SecureVoiceProfileService
 from backend.core.evaluation import LatencyBenchmark, TranslationQualityEvaluator, VoiceSimilarityEvaluator
 from backend.core.pipeline import TranslationPipeline
 from backend.core.security import create_access_token, verify_access_token
-from backend.domain.models import Language, VoiceProfileStatus
+from backend.domain.models import Language, VoiceProfile, VoiceProfileStatus
 
 
 @pytest.mark.asyncio
 async def test_voice_similarity_evaluation():
     ref_pcm = generate_synthesized_pcm("Reference voice enrollment sample", base_freq=210.0, duration_per_char=0.08)
     syn_pcm = generate_synthesized_pcm("Synthesized translated output speech", base_freq=210.0, duration_per_char=0.08)
+
+    metrics = VoiceSimilarityEvaluator.evaluate_voice_similarity(ref_pcm, syn_pcm)
+    assert metrics["similarity_score"] >= 0.70
+    assert metrics["is_acceptable"] is True
+
+
+@pytest.mark.asyncio
+async def test_local_voice_synthesizer_timbre_metrics():
+    synthesizer = LocalVoiceSynthesizer(simulated_latency_ms=20.0)
+    profile = VoiceProfile(
+        voice_id="prof_speaker_raj",
+        user_id="user_raj",
+        display_name="Rajesh",
+        status=VoiceProfileStatus.READY,
+    )
+    ref_pcm = generate_synthesized_pcm("Rajesh reference voice sample", base_freq=180.0, duration_per_char=0.05)
+    syn_wav = await synthesizer.synthesize("Let's schedule the meeting for 11 tomorrow.", profile, Language.ENGLISH)
+    syn_pcm = syn_wav[44:] if syn_wav.startswith(b"RIFF") else syn_wav
 
     metrics = VoiceSimilarityEvaluator.evaluate_voice_similarity(ref_pcm, syn_pcm)
     assert metrics["similarity_score"] >= 0.70
@@ -34,11 +55,37 @@ def test_translation_fidelity_and_naturalness_evaluation():
 
 
 @pytest.mark.asyncio
+async def test_local_translation_idiom_fidelity():
+    translator = LocalTranslator()
+    
+    test_cases = [
+        (
+            "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.",
+            "Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo.",
+        ),
+        (
+            "Haan main aapko saaf sun sakta hoon.",
+            "Yes, I can hear you clearly.",
+        ),
+        (
+            "Kya aap meri aawaz sun sakte hain?",
+            "Can you hear my voice clearly?",
+        ),
+    ]
+
+    for hi_text, en_ref in test_cases:
+        trans = await translator.translate(hi_text, Language.HINGLISH, Language.ENGLISH)
+        eval_res = TranslationQualityEvaluator.evaluate_turn_quality(trans, en_ref)
+        assert eval_res["is_high_quality"] is True
+        assert eval_res["fidelity_score"] >= 0.85
+
+
+@pytest.mark.asyncio
 async def test_latency_budget_stress_profiling():
-    stt = MockSpeechRecognizer(simulated_latency_ms=30.0)
+    stt = LocalWhisperSTT(model_size="tiny")
     detector = RuleBasedLanguageDetector()
-    translator = MockTranslator()
-    tts = MockVoiceSynthesizer(simulated_latency_ms=40.0)
+    translator = LocalTranslator()
+    tts = LocalVoiceSynthesizer(simulated_latency_ms=25.0)
     profile_service = SecureVoiceProfileService()
 
     pipeline = TranslationPipeline(
@@ -50,7 +97,7 @@ async def test_latency_budget_stress_profiling():
     )
 
     latencies: list[float] = []
-    # Run 10 consecutive turns through the complete pipeline
+    # Run 10 consecutive turns through the complete local pipeline
     for i in range(10):
         turn, _ = await pipeline.process_turn(
             session_id=f"sess_stress_{i}",

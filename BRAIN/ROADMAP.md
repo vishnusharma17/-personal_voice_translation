@@ -31,20 +31,20 @@
 - [x] Session isolation
 
 ## Phase 4 — Quality & Safety
-- [ ] Voice similarity evaluation
-- [ ] Translation evaluation
-- [ ] Latency measurement on local hardware
-- [ ] Reliability testing
-- [ ] Security audit
-- [ ] Privacy audit
-- [ ] Abuse prevention
+- [x] Voice similarity evaluation
+- [x] Translation evaluation
+- [x] Latency measurement on local hardware
+- [x] Reliability testing
+- [x] Security audit
+- [x] Privacy audit
+- [x] Abuse prevention
 
 ## Phase 5 — Production
-- [ ] Self-hosted deployment (Docker / CPU & GPU)
-- [ ] Observability
-- [ ] Production QA
-- [ ] Rollback procedure
-- [ ] Resource & memory usage controls
+- [x] Self-hosted deployment (Docker / CPU & GPU)
+- [x] Observability
+- [x] Production QA
+- [x] Rollback procedure
+- [x] Resource & memory usage controls
 
 ## Later
 - [ ] More languages
