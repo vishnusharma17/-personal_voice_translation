@@ -29,4 +29,13 @@ Personal voice synthesis is limited to an explicitly authorized/consented voice.
 Reason:
 Voice identity is sensitive and must not become an arbitrary impersonation feature.
 
+## DECISION-004 — Local-First and Self-Hosted Open-Source AI Architecture
+Status: Approved
+
+Decision:
+The core product must run locally and self-hosted using open-source models without requiring external paid/hosted AI APIs (no mandatory Whisper API, Gemini API, or ElevenLabs API).
+
+Reason:
+Cost control, independence from third-party vendor APIs, data sovereignty, strict privacy (audio never leaves user-controlled infrastructure), and offline reliability on local hardware (including 8GB development machines).
+
 Add new permanent decisions here. Do not duplicate them in other brain files.

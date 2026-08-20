@@ -1,50 +1,50 @@
-# Roadmap
+# Roadmap (Local-First Open-Source AI Architecture)
 
 ## Phase 0 — Foundation
 - [x] Initialize repository/app
-- [x] Lock technical stack
-- [x] Define provider interfaces
+- [x] Lock technical stack (Python / FastAPI / WebSockets / WebRTC)
+- [x] Define provider interfaces (`SpeechRecognizer`, `LanguageDetector`, `Translator`, `VoiceSynthesizer`, `VoiceProfileService`)
 - [x] Define auth/session model
 - [x] Define voice onboarding model
 - [x] Establish testing infrastructure
 
-## Phase 1 — Voice
+## Phase 1 — Voice (Local & Consented)
 - [x] Voice onboarding
 - [x] Consent/authorization
-- [x] Voice quality validation
-- [x] Secure voice profile
+- [x] Voice quality validation (SNR / clipping / noise floor)
+- [x] Secure voice profile (local storage & cryptographic hash)
 - [x] Voice deletion/reset
 
-## Phase 2 — Translation
-- [x] Streaming speech recognition
-- [x] Hindi/Hinglish ↔ English
-- [x] Context-aware translation
-- [x] Naturalization
-- [x] Translation quality evaluation
+## Phase 2 — Translation (Local Open-Source Pipeline)
+- [ ] Local streaming STT adapter (Faster-Whisper / Whisper.cpp / Vosk)
+- [ ] Local Hinglish & Hindi ↔ English normalizer & translator (MarianMT / NLLB / Tiny Llama/Qwen / Rule Engine)
+- [ ] Local personal voice synthesizer (Piper / Coqui / Mel-spectrogram & speaker timbre modulation)
+- [ ] Translation quality and semantic fidelity evaluation
+- [ ] Low-memory CPU/GPU optimization (<8GB RAM compatibility)
 
 ## Phase 3 — Realtime
-- [x] WebRTC sessions
-- [x] Turn detection
-- [x] Streaming synthesis
-- [x] Interruption handling
-- [x] Reconnect behavior
-- [x] Session isolation
+- [ ] WebRTC sessions
+- [ ] Adaptive turn detection
+- [ ] Streaming synthesis
+- [ ] Interruption handling
+- [ ] Reconnect behavior
+- [ ] Session isolation
 
 ## Phase 4 — Quality & Safety
-- [x] Voice similarity evaluation
-- [x] Translation evaluation
-- [x] Latency measurement
-- [x] Reliability testing
-- [x] Security audit
-- [x] Privacy audit
-- [x] Abuse prevention
+- [ ] Voice similarity evaluation
+- [ ] Translation evaluation
+- [ ] Latency measurement on local hardware
+- [ ] Reliability testing
+- [ ] Security audit
+- [ ] Privacy audit
+- [ ] Abuse prevention
 
 ## Phase 5 — Production
-- [x] Deployment
-- [x] Observability
-- [x] Production QA
-- [x] Rollback procedure
-- [x] Cost/usage controls
+- [ ] Self-hosted deployment (Docker / CPU & GPU)
+- [ ] Observability
+- [ ] Production QA
+- [ ] Rollback procedure
+- [ ] Resource & memory usage controls
 
 ## Later
 - [ ] More languages

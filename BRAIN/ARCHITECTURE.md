@@ -35,8 +35,10 @@ The reverse direction uses the same pipeline.
 
 ## Architecture principles
 
-- Provider integrations must sit behind stable interfaces.
-- Realtime transport must remain independent of any one AI provider.
+- Provider integrations must sit behind stable interfaces (`SpeechRecognizer`, `Translator`, `VoiceSynthesizer`, `LanguageDetector`, `VoiceProfileService`).
+- Local-first & self-hosted by design: Core processing runs locally on user-controlled infrastructure without external third-party API dependencies.
+- CPU/GPU fallback: Models must run efficiently on standard CPU and Apple Silicon / CUDA GPUs.
+- Low-memory footprint: Pipeline optimized to run concurrently on resource-constrained 8GB RAM machines.
 - Temporary processing data must be separated from persistent user data.
 - Prefer streaming over full-turn blocking processing.
 - Make interruption, timeout, retry, and fallback behavior explicit.
@@ -44,24 +46,22 @@ The reverse direction uses the same pipeline.
 - Never leak audio across sessions.
 - Keep components independently testable.
 
-## Suggested provider interfaces
+## Local Open-Source Stack Strategy
 
-SpeechRecognizer
-Translator
-VoiceSynthesizer
-LanguageDetector
-VoiceProfileService
-
-Providers can be replaced without rewriting the session engine.
+1. **Local STT**: Faster-Whisper / Whisper.cpp / Vosk (quantized `tiny`/`base` models for CPU & low memory footprint ~150-300MB RAM).
+2. **Local Translation**: MarianMT / NLLB-200 / Quantized Llama-3.2-1B / Qwen-2.5-1.5B (quantized INT4/INT8 ~800MB-1.2GB RAM).
+3. **Local Personal Voice Cloning & TTS**: Piper TTS / Coqui TTS / ChatTTS / OpenVoice (low-resource localized voice synthesis with speaker embedding modulation).
+4. **Local Voice Profile & Consent**: Local cryptographic hashing, SNR signal analysis, and local file storage.
 
 ## Realtime direction
 
 WebRTC is the primary browser audio transport.
 
-The processing pipeline should support streaming chunks, cancellation of stale generations, interruption handling, reconnection, and network adaptation.
+The processing pipeline supports streaming chunks, cancellation of stale generations, interruption handling, reconnection, and network adaptation.
 
 ## Latency target
 
-Long-term target: conversational perceived latency around the sub-1.5-second range where technically achievable.
+Long-term target: conversational perceived latency around the sub-1.5-second range where technically achievable on local hardware.
 
 Never claim a latency target is achieved without measurement.
+
