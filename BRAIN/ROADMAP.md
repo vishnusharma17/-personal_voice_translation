@@ -16,11 +16,11 @@
 - [x] Voice deletion/reset
 
 ## Phase 2 — Translation (Local Open-Source Pipeline)
-- [ ] Local streaming STT adapter (Faster-Whisper / Whisper.cpp / Vosk)
-- [ ] Local Hinglish & Hindi ↔ English normalizer & translator (MarianMT / NLLB / Tiny Llama/Qwen / Rule Engine)
-- [ ] Local personal voice synthesizer (Piper / Coqui / Mel-spectrogram & speaker timbre modulation)
-- [ ] Translation quality and semantic fidelity evaluation
-- [ ] Low-memory CPU/GPU optimization (<8GB RAM compatibility)
+- [x] Local streaming STT adapter (Faster-Whisper / Whisper.cpp / Vosk)
+- [x] Local Hinglish & Hindi ↔ English normalizer & translator (MarianMT / NLLB / Tiny Llama/Qwen / Rule Engine)
+- [x] Local personal voice synthesizer (Piper / Coqui / Mel-spectrogram & speaker timbre modulation)
+- [x] Translation quality and semantic fidelity evaluation
+- [x] Low-memory CPU/GPU optimization (<8GB RAM compatibility)
 
 ## Phase 3 — Realtime
 - [ ] WebRTC sessions

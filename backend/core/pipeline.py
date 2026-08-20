@@ -19,6 +19,7 @@ from backend.domain.models import (
     LatencyBreakdown,
     Turn,
     VoiceProfile,
+    VoiceProfileStatus,
 )
 
 
@@ -120,6 +121,7 @@ class TranslationPipeline:
                 voice_id=f"ephemeral_{speaker_id}",
                 user_id=speaker_id,
                 display_name=speaker_name,
+                status=VoiceProfileStatus.READY,
             )
 
         synthesized_audio = await self.tts.synthesize(

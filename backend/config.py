@@ -47,18 +47,28 @@ class AppSettings(BaseModel):
     chunk_size_ms: int = Field(default=100, description="Streaming chunk buffer size in milliseconds")
     silence_threshold_ms: int = Field(default=600, description="Silence duration in ms to trigger end of turn")
     
-    # Provider Settings (Pluggable)
+    # Provider Settings (Pluggable: local | mock | whisper | gemini | elevenlabs)
     stt_provider: str = Field(
-        default_factory=lambda: os.getenv("STT_PROVIDER", "mock"),
-        description="Active Speech-to-Text provider (mock | whisper | deepgram)",
+        default_factory=lambda: os.getenv("STT_PROVIDER", "local"),
+        description="Active Speech-to-Text provider (local | mock | whisper)",
     )
     translation_provider: str = Field(
-        default_factory=lambda: os.getenv("TRANSLATION_PROVIDER", "mock"),
-        description="Active translation provider (mock | gemini | openai)",
+        default_factory=lambda: os.getenv("TRANSLATION_PROVIDER", "local"),
+        description="Active translation provider (local | mock | gemini)",
     )
     tts_provider: str = Field(
-        default_factory=lambda: os.getenv("TTS_PROVIDER", "mock"),
-        description="Active voice synthesizer provider (mock | elevenlabs | xtts)",
+        default_factory=lambda: os.getenv("TTS_PROVIDER", "local"),
+        description="Active voice synthesizer provider (local | mock | elevenlabs)",
+    )
+
+    # Strict Local / Offline Mode (Enforces Zero External Network Access)
+    offline_mode: bool = Field(
+        default_factory=lambda: os.getenv("OFFLINE_MODE", "true").lower() == "true",
+        description="Strict offline mode rejecting outbound third-party AI calls",
+    )
+    local_only: bool = Field(
+        default_factory=lambda: os.getenv("LOCAL_ONLY", "true").lower() == "true",
+        description="Enforces local execution only",
     )
     
     # Target Latency (ms) for observability
