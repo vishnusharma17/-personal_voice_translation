@@ -1,0 +1,183 @@
+"""
+Realtime Room and WebSocket Gateway API Routes
+"""
+
+import base64
+import json
+from typing import Optional
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
+from pydantic import BaseModel
+
+from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
+from backend.adapters.stt.mock_stt import MockSpeechRecognizer
+from backend.adapters.translation.mock_translator import MockTranslator
+from backend.adapters.tts.mock_tts import MockVoiceSynthesizer
+from backend.api.voice_routes import voice_profile_service
+from backend.core.pipeline import TranslationPipeline
+from backend.core.session_gateway import SessionGateway
+from backend.domain.models import Language, Participant, Turn
+
+router = APIRouter(tags=["Realtime Gateway"])
+
+# Initialize default providers and pipeline
+stt_adapter = MockSpeechRecognizer()
+lang_detector = RuleBasedLanguageDetector()
+translator_adapter = MockTranslator()
+tts_adapter = MockVoiceSynthesizer()
+
+pipeline = TranslationPipeline(
+    stt=stt_adapter,
+    lang_detector=lang_detector,
+    translator=translator_adapter,
+    tts=tts_adapter,
+    profile_service=voice_profile_service,
+)
+
+session_gateway = SessionGateway(pipeline=pipeline)
+
+
+class CreateRoomRequest(BaseModel):
+    host_user_id: str
+    room_code: Optional[str] = None
+
+
+class CreateRoomResponse(BaseModel):
+    session_id: str
+    room_code: str
+    host_user_id: str
+
+
+class TranslateTurnRequest(BaseModel):
+    session_id: Optional[str] = "demo_session"
+    speaker_id: str = "user_1"
+    speaker_name: str = "Speaker A"
+    text_prompt: Optional[str] = None
+    audio_base64: Optional[str] = None
+    source_language: Optional[str] = "hi"
+    target_language: Optional[str] = "en"
+
+
+@router.post("/api/rooms/create", response_model=CreateRoomResponse)
+async def create_room(req: CreateRoomRequest):
+    session = session_gateway.create_session(host_user_id=req.host_user_id, room_code=req.room_code)
+    return CreateRoomResponse(
+        session_id=session.session_id,
+        room_code=session.room_code,
+        host_user_id=session.host_user_id,
+    )
+
+
+@router.get("/api/rooms/{room_code}")
+async def get_room(room_code: str):
+    session = session_gateway.get_session_by_code(room_code)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found or expired.")
+    return {
+        "session_id": session.session_id,
+        "room_code": session.room_code,
+        "is_active": session.is_active,
+        "participants_count": len(session.participants),
+        "participants": [
+            {
+                "participant_id": p.participant_id,
+                "display_name": p.display_name,
+                "speaking_language": p.preferred_speaking_language,
+                "listening_language": p.preferred_listening_language,
+            }
+            for p in session.participants.values()
+        ],
+    }
+
+
+@router.post("/api/pipeline/translate-turn")
+async def direct_translate_turn(req: TranslateTurnRequest):
+    """Direct testing endpoint for voice translation pipeline."""
+    audio_bytes = b""
+    if req.audio_base64:
+        try:
+            audio_bytes = base64.b64decode(req.audio_base64)
+        except Exception:
+            pass
+
+    src_lang = Language(req.source_language) if req.source_language in [l.value for l in Language] else Language.HINDI
+    tgt_lang = Language(req.target_language) if req.target_language in [l.value for l in Language] else Language.ENGLISH
+
+    turn, synth_audio = await pipeline.process_turn(
+        session_id=req.session_id or "demo_session",
+        speaker_id=req.speaker_id,
+        speaker_name=req.speaker_name,
+        audio_bytes=audio_bytes,
+        source_language_hint=src_lang,
+        target_language_preference=tgt_lang,
+        transcript_override=req.text_prompt,
+    )
+
+    audio_b64 = base64.b64encode(synth_audio).decode("ascii") if synth_audio else ""
+
+    return {
+        "turn": turn.model_dump(),
+        "synthesized_audio_base64": audio_b64,
+        "mime_type": "audio/wav",
+    }
+
+
+@router.websocket("/ws/call/{room_code}")
+async def websocket_call_endpoint(
+    websocket: WebSocket,
+    room_code: str,
+    user_id: str = "guest",
+    display_name: str = "Guest",
+    speaking_lang: str = "hi",
+    listening_lang: str = "en",
+):
+    await websocket.accept()
+
+    # Find or auto-create session for room_code
+    session = session_gateway.get_session_by_code(room_code)
+    if not session:
+        session = session_gateway.create_session(host_user_id=user_id, room_code=room_code)
+
+    participant = Participant(
+        participant_id=user_id,
+        user_id=user_id,
+        display_name=display_name,
+        preferred_speaking_language=Language(speaking_lang) if speaking_lang in [l.value for l in Language] else Language.HINDI,
+        preferred_listening_language=Language(listening_lang) if listening_lang in [l.value for l in Language] else Language.ENGLISH,
+        translation_only_mode=True,
+    )
+
+    registered = await session_gateway.register_participant(session.session_id, participant, websocket)
+    if not registered:
+        await websocket.close(code=1008, reason="Could not register into session")
+        return
+
+    try:
+        while True:
+            raw_text = await websocket.receive_text()
+            try:
+                data = json.loads(raw_text)
+            except Exception:
+                continue
+
+            event_type = data.get("type", "")
+            
+            if event_type == "audio_turn":
+                # Audio turn received from client
+                audio_b64 = data.get("audio_base64", "")
+                text_override = data.get("text_override")
+                audio_bytes = base64.b64decode(audio_b64) if audio_b64 else b""
+
+                await session_gateway.handle_turn_audio(
+                    session_id=session.session_id,
+                    speaker_id=user_id,
+                    audio_bytes=audio_bytes,
+                    transcript_override=text_override,
+                )
+
+            elif event_type == "ping":
+                await websocket.send_text(json.dumps({"event": "pong", "timestamp": data.get("timestamp")}))
+
+    except WebSocketDisconnect:
+        await session_gateway.unregister_participant(session.session_id, user_id)
+    except Exception:
+        await session_gateway.unregister_participant(session.session_id, user_id)

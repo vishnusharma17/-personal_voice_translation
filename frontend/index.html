@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Voice Translation — Real-Time Conversational AI OS</title>
+  <meta name="description" content="Real-time personal voice translation platform. Speak naturally in Hindi or Hinglish, the listener hears only your authorized voice in fluent English.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="8" y1="22" x2="16" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">VoiceBridge <span class="brand-badge">AI OS 3.0</span></h1>
+          <p class="brand-subtitle">Real-Time Personal Voice Translation Platform</p>
+        </div>
+      </div>
+
+      <div class="header-status-group">
+        <div class="latency-budget-badge">
+          <span class="pulse-dot green"></span>
+          <span class="budget-label">Latency Budget:</span>
+          <strong id="header-latency-val">420ms</strong> <span class="budget-target">(&lt;1500ms target)</span>
+        </div>
+        <div class="room-status-badge">
+          <span class="status-indicator live"></span>
+          <span id="header-room-status">Room: PVT-DEMO</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" id="tab-call-btn" onclick="switchTab('call')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        Live Call Studio
+      </button>
+      <button class="nav-tab" id="tab-voice-btn" onclick="switchTab('voice')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Voice Profile &amp; Consent
+      </button>
+      <button class="nav-tab" id="tab-diagnostics-btn" onclick="switchTab('diagnostics')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Pipeline Observability
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- SECTION 1: LIVE CALL STUDIO -->
+      <section id="section-call" class="app-section active">
+        <div class="studio-grid">
+          <!-- Left Control Panel -->
+          <div class="glass-card controls-card">
+            <div class="card-header">
+              <h2 class="card-title">Session Configuration</h2>
+              <span class="security-tag" title="Strict Session Isolation Active">🔒 Isolated Room</span>
+            </div>
+
+            <div class="form-group">
+              <label for="speaker-name-input">Your Display Name</label>
+              <input type="text" id="speaker-name-input" class="form-input" value="Rajesh Sharma" placeholder="Enter your name">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label for="speak-lang-select">I Speak</label>
+                <select id="speak-lang-select" class="form-select">
+                  <option value="hi" selected>Hindi / Hinglish (हिन्दी)</option>
+                  <option value="en">English</option>
+                  <option value="auto">Auto-Detect</option>
+                </select>
+              </div>
+              <div class="form-group half">
+                <label for="listen-lang-select">Listener Hears</label>
+                <select id="listen-lang-select" class="form-select">
+                  <option value="en" selected>English (Natural)</option>
+                  <option value="hi">Hindi (हिन्दी)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="toggle-box">
+              <div class="toggle-info">
+                <strong>Translation-Only Mode</strong>
+                <p>Listener hears ONLY translated speech in your authorized voice. Original language audio is never leaked.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="translation-only-toggle" checked disabled>
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div class="room-actions-bar">
+              <button class="btn btn-primary" id="start-call-btn" onclick="toggleCallConnection()">
+                <span class="btn-icon">⚡</span>
+                <span id="call-btn-text">Connect Live Call</span>
+              </button>
+              <button class="btn btn-secondary" onclick="generateNewRoom()">
+                <span>New Room</span>
+              </button>
+            </div>
+
+            <!-- Live Audio Visualizer -->
+            <div class="visualizer-container">
+              <div class="visualizer-header">
+                <span>Live Audio Stream</span>
+                <span id="mic-status-label" class="badge">Idle</span>
+              </div>
+              <canvas id="visualizer-canvas" width="360" height="70"></canvas>
+            </div>
+
+            <!-- Speak Simulator / Utterance Tester -->
+            <div class="simulator-box">
+              <div class="sim-header">
+                <span class="sim-title">Demo Prompt Simulator</span>
+                <span class="hint-text">Simulate speech turn or use mic</span>
+              </div>
+              <div class="prompt-chips">
+                <button class="chip" onclick="simulatePrompt('Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.')">
+                  "Kal 11 baje meeting rakh lete hain..."
+                </button>
+                <button class="chip" onclick="simulatePrompt('kya aap meri aawaz sun sakte hain?')">
+                  "kya aap meri aawaz sun sakte hain?"
+                </button>
+                <button class="chip" onclick="simulatePrompt('Haan main aapko saaf sun sakta hoon.')">
+                  "Haan main aapko saaf sun sakta hoon."
+                </button>
+              </div>
+              <div class="input-with-send">
+                <input type="text" id="custom-prompt-input" class="form-input" placeholder="Type custom Hindi/Hinglish speech turn...">
+                <button class="btn btn-accent" onclick="sendCustomPrompt()">Speak Turn</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Conversation & Translation Feed -->
+          <div class="glass-card feed-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Live Translated Conversation</h2>
+                <p class="card-subtitle">Real-time bidirectional speech with personal voice cloning</p>
+              </div>
+              <div class="feed-stats">
+                <span id="turns-count-badge" class="count-pill">0 Turns</span>
+                <button class="btn-icon-only" title="Clear Feed" onclick="clearFeed()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Conversation Stream -->
+            <div class="conversation-stream" id="conversation-stream">
+              <!-- Welcome Initial Card -->
+              <div class="welcome-box">
+                <div class="welcome-icon">🎙️</div>
+                <h3>Personal Voice Translation Ready</h3>
+                <p>Speak in your natural preferred language. The other participant will hear only the fluent translated language in your authentic voice.</p>
+                <div class="example-preview">
+                  <div class="prev-item">
+                    <span class="prev-lang hi">Hindi/Hinglish</span>
+                    <span class="prev-text">"Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga."</span>
+                  </div>
+                  <div class="prev-arrow">➔</div>
+                  <div class="prev-item">
+                    <span class="prev-lang en">Listener Hears (Your Voice)</span>
+                    <span class="prev-text">"Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo."</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Audio Playback Controller -->
+            <div class="audio-playback-bar">
+              <div class="audio-meta">
+                <div class="speaker-avatar">👤</div>
+                <div class="speaker-text">
+                  <strong id="playback-speaker-name">Speaker Voice Output</strong>
+                  <span id="playback-status-text">Ready for stream</span>
+                </div>
+              </div>
+              <audio id="synthesized-audio-player" controls class="custom-audio-player"></audio>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: VOICE ONBOARDING & CONSENT STUDIO -->
+      <section id="section-voice" class="app-section">
+        <div class="voice-studio-grid">
+          <!-- Step 1: Consent Card -->
+          <div class="glass-card consent-card">
+            <div class="card-header">
+              <h2 class="card-title">1. Explicit Voice Consent</h2>
+              <span class="badge badge-required">Mandatory</span>
+            </div>
+            <p class="section-desc">
+              To preserve security and eliminate unauthorized voice impersonation, voice synthesis is strictly restricted to consented voices (<a href="#" class="inline-link">RULES/VOICE.md</a>).
+            </p>
+
+            <div class="consent-declaration-box">
+              <label class="consent-label">Read Aloud &amp; Authorize:</label>
+              <blockquote class="consent-statement" id="consent-statement-text">
+                "I hereby give full explicit consent to VoiceBridge to analyze my speech and synthesize translated audio exclusively in my personal authorized voice during real-time calls."
+              </blockquote>
+            </div>
+
+            <div class="consent-action-row">
+              <button class="btn btn-accent" id="record-consent-btn" onclick="authorizeConsent()">
+                <span class="btn-icon">✍️</span> Authorize &amp; Sign Consent
+              </button>
+              <div id="consent-status-badge" class="consent-status unverified">
+                <span class="status-dot"></span> Not Authorized
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Sample Audio & Quality Analyzer -->
+          <div class="glass-card quality-card">
+            <div class="card-header">
+              <h2 class="card-title">2. Voice Quality &amp; Enrollment</h2>
+              <span class="badge" id="profile-status-badge">No Profile</span>
+            </div>
+            <p class="section-desc">
+              Record or upload a 5-10 second natural speech sample. Our signal analyzer evaluates Signal-to-Noise Ratio (SNR), clipping, and room acoustics.
+            </p>
+
+            <div class="recording-controls">
+              <button class="btn btn-primary" id="mic-record-btn" onclick="toggleVoiceSampleRecord()">
+                <span class="btn-icon">⏺</span>
+                <span id="record-btn-label">Record Sample (5s)</span>
+              </button>
+              <span class="or-divider">or</span>
+              <label class="btn btn-secondary file-upload-label">
+                <span>Upload WAV/RAW</span>
+                <input type="file" id="sample-file-upload" accept="audio/*" onchange="handleSampleFileUpload(event)">
+              </label>
+            </div>
+
+            <!-- Quality Diagnostic Metrics Grid -->
+            <div class="quality-metrics-grid">
+              <div class="metric-tile">
+                <span class="metric-title">Signal-to-Noise (SNR)</span>
+                <strong class="metric-value" id="metric-snr">-- dB</strong>
+                <span class="metric-sub">&gt;14 dB target</span>
+              </div>
+              <div class="metric-tile">
+                <span class="metric-title">Clipping Rate</span>
+                <strong class="metric-value" id="metric-clipping">-- %</strong>
+                <span class="metric-sub">&lt;3% target</span>
+              </div>
+              <div class="metric-tile">
+                <span class="metric-title">Background Noise</span>
+                <strong class="metric-value" id="metric-noise">-- dBFS</strong>
+                <span class="metric-sub">Quiet room</span>
+              </div>
+              <div class="metric-tile">
+                <span class="metric-title">Sample Duration</span>
+                <strong class="metric-value" id="metric-duration">-- s</strong>
+                <span class="metric-sub">&gt;3.0s required</span>
+              </div>
+            </div>
+
+            <div id="quality-feedback-box" class="feedback-alert hidden"></div>
+
+            <button class="btn btn-success full-width" id="create-profile-btn" onclick="enrollVoiceProfile()" disabled>
+              Enroll Authorized Voice Profile
+            </button>
+          </div>
+
+          <!-- Active Profile & GDPR Deletion Card -->
+          <div class="glass-card profile-manage-card full-span">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Active Voice Profile</h2>
+                <p class="card-subtitle">Cryptographically secured voice representation</p>
+              </div>
+              <button class="btn btn-danger" onclick="deleteActiveProfile()">
+                <span class="btn-icon">🗑️</span> Delete &amp; Revoke Profile
+              </button>
+            </div>
+
+            <div class="profile-details-grid" id="profile-details-view">
+              <div class="detail-item">
+                <span class="detail-label">Voice Profile ID</span>
+                <code class="detail-code" id="view-profile-id">None</code>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Consent ID</span>
+                <code class="detail-code" id="view-consent-id">None</code>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Enrolled Language</span>
+                <span class="detail-val" id="view-profile-lang">Hindi (हिन्दी)</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Quality Status</span>
+                <span class="badge badge-success" id="view-profile-quality">Ready for Synthesis</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: PIPELINE OBSERVABILITY -->
+      <section id="section-diagnostics" class="app-section">
+        <div class="diagnostics-grid">
+          <div class="glass-card">
+            <div class="card-header">
+              <h2 class="card-title">Latency Breakdown Budget</h2>
+              <span class="badge badge-info">1500ms Cap</span>
+            </div>
+            <div class="latency-bars">
+              <div class="latency-row">
+                <span class="latency-name">Voice Activity Detection (VAD)</span>
+                <div class="progress-track"><div class="progress-fill" style="width: 15%"></div></div>
+                <span class="latency-val" id="diag-vad-val">45ms</span>
+              </div>
+              <div class="latency-row">
+                <span class="latency-name">Streaming Speech Recognition (STT)</span>
+                <div class="progress-track"><div class="progress-fill fill-cyan" style="width: 30%"></div></div>
+                <span class="latency-val" id="diag-stt-val">120ms</span>
+              </div>
+              <div class="latency-row">
+                <span class="latency-name">Contextual Natural Translation</span>
+                <div class="progress-track"><div class="progress-fill fill-amber" style="width: 40%"></div></div>
+                <span class="latency-val" id="diag-translate-val">180ms</span>
+              </div>
+              <div class="latency-row">
+                <span class="latency-name">Personal Voice Synthesis (TTS)</span>
+                <div class="progress-track"><div class="progress-fill fill-purple" style="width: 35%"></div></div>
+                <span class="latency-val" id="diag-tts-val">150ms</span>
+              </div>
+            </div>
+            <div class="total-latency-banner">
+              <span>Total Perceived Roundtrip Latency:</span>
+              <strong id="diag-total-latency">495 ms</strong>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-header">
+              <h2 class="card-title">Security &amp; Privacy Compliance</h2>
+              <span class="badge badge-success">Verified</span>
+            </div>
+            <ul class="compliance-list">
+              <li>
+                <span class="icon-check">✓</span>
+                <div>
+                  <strong>Authorized Consent Verification</strong>
+                  <p>Every voice synthesis invocation is authorized by cryptographic SHA-256 consent token.</p>
+                </div>
+              </li>
+              <li>
+                <span class="icon-check">✓</span>
+                <div>
+                  <strong>Zero Cross-Session Leakage</strong>
+                  <p>Strict session boundaries prevent audio frames from leaking across rooms.</p>
+                </div>
+              </li>
+              <li>
+                <span class="icon-check">✓</span>
+                <div>
+                  <strong>Translation-Only Isolation</strong>
+                  <p>Listener never receives raw untranslated audio when translation-only mode is active.</p>
+                </div>
+              </li>
+              <li>
+                <span class="icon-check">✓</span>
+                <div>
+                  <strong>GDPR Voice Data Deletion</strong>
+                  <p>Instant irreversible purge of voice samples and profile embeddings upon user request.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
