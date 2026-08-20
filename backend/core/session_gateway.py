@@ -30,6 +30,7 @@ class SessionGateway:
         self.pipeline = pipeline
         self._sessions: dict[str, ConversationSession] = {}
         self._active_connections: dict[str, dict[str, WebSocket]] = {}  # session_id -> {participant_id: ws}
+        self._registered_participants: dict[str, dict[str, Participant]] = {}  # session_id -> {participant_id: Participant}
         self._conversation_history: dict[str, list[Turn]] = {}  # session_id -> turns
         self._active_turn_tasks: dict[str, asyncio.Task] = {}  # session_id -> running turn task
 
@@ -47,6 +48,7 @@ class SessionGateway:
         )
         self._sessions[session_id] = session
         self._active_connections[session_id] = {}
+        self._registered_participants[session_id] = {}
         self._conversation_history[session_id] = []
         return session
 
@@ -69,7 +71,11 @@ class SessionGateway:
         if not session or not session.is_active:
             return False
 
-        is_reconnect = participant.participant_id in session.participants
+        if session_id not in self._registered_participants:
+            self._registered_participants[session_id] = {}
+
+        is_reconnect = participant.participant_id in self._registered_participants[session_id]
+        self._registered_participants[session_id][participant.participant_id] = participant
         session.participants[participant.participant_id] = participant
         self._active_connections[session_id][participant.participant_id] = websocket
 
@@ -116,15 +122,11 @@ class SessionGateway:
             session = self._sessions[session_id]
             session.participants.pop(participant_id, None)
 
-            if len(session.participants) == 0:
-                session.is_active = False
-                session.ended_at = datetime.now(timezone.utc)
-            else:
-                await self.broadcast_event(
-                    session_id=session_id,
-                    event_type="participant_left",
-                    payload={"participant_id": participant_id},
-                )
+            await self.broadcast_event(
+                session_id=session_id,
+                event_type="participant_left",
+                payload={"participant_id": participant_id},
+            )
 
     async def broadcast_event(
         self,
