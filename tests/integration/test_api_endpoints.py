@@ -1,5 +1,5 @@
 """
-Integration Tests: FastAPI HTTP Endpoints
+Integration Tests: FastAPI HTTP Endpoints, Security Headers & ICE Configuration
 """
 
 import httpx
@@ -16,6 +16,28 @@ async def test_health_endpoint():
         data = res.json()
         assert data["status"] == "healthy"
         assert data["target_latency_budget_ms"] == 1500
+
+
+@pytest.mark.asyncio
+async def test_security_headers_middleware():
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        res = await client.get("/api/health")
+        assert res.status_code == 200
+        assert res.headers.get("x-content-type-options") == "nosniff"
+        assert res.headers.get("x-frame-options") == "DENY"
+        assert res.headers.get("x-xss-protection") == "1; mode=block"
+        assert res.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+
+
+@pytest.mark.asyncio
+async def test_ice_servers_endpoint():
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        res = await client.get("/api/config/ice-servers")
+        assert res.status_code == 200
+        data = res.json()
+        assert "iceServers" in data
+        assert len(data["iceServers"]) >= 1
+        assert "urls" in data["iceServers"][0]
 
 
 @pytest.mark.asyncio

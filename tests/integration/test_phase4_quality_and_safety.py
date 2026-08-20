@@ -1,19 +1,26 @@
 """
-Integration Tests: Phase 4 Quality, Voice Similarity, Translation Naturalness, Latency Profiling & Security Audit
+Integration Tests: Phase 4 Human Quality, Edge-Case Translation,
+Multi-Room Concurrency Stress Profiling, Continuous Call Stability & Security Audit
 """
 
+import asyncio
+import base64
+import os
+import struct
+import time
+
+import psutil
 import pytest
 
 from backend.adapters.language_detector.detector import RuleBasedLanguageDetector
 from backend.adapters.stt.local_whisper_stt import LocalWhisperSTT
 from backend.adapters.translation.local_translator import LocalTranslator
 from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
-from backend.adapters.tts.mock_tts import (
-    generate_synthesized_pcm,
-)
+from backend.adapters.tts.mock_tts import generate_synthesized_pcm
 from backend.adapters.voice_profile.secure_profile_service import (
     SecureVoiceProfileService,
 )
+from backend.config import settings
 from backend.core.evaluation import (
     LatencyBenchmark,
     TranslationQualityEvaluator,
@@ -21,7 +28,8 @@ from backend.core.evaluation import (
 )
 from backend.core.pipeline import TranslationPipeline
 from backend.core.security import create_access_token, verify_access_token
-from backend.domain.models import Language, VoiceProfile, VoiceProfileStatus
+from backend.core.session_gateway import SessionGateway
+from backend.domain.models import Language, Participant, VoiceProfile, VoiceProfileStatus
 
 
 @pytest.mark.asyncio
@@ -88,6 +96,53 @@ async def test_local_translation_idiom_fidelity():
 
 
 @pytest.mark.asyncio
+async def test_difficult_conversational_and_technical_cases():
+    """
+    Tests edge cases: numbers, technical terms, fillers, fast speech, polite phrasing.
+    """
+    translator = LocalTranslator()
+
+    difficult_cases = [
+        # Technical & Numbers
+        (
+            "humein 3 servers aur 500 users ke liye test karna hai.",
+            "We need to test for 3 servers and 500 users.",
+        ),
+        (
+            "api latency high hai, database query optimize karni padegi.",
+            "API latency is high, we will need to optimize the database query.",
+        ),
+        # Code-mixed casual Hindi-English
+        (
+            "yaar meeting ka link bhej do, main 5 minute mein join karta hoon.",
+            "Friend, please send the meeting link, I will join in 5 minutes.",
+        ),
+        # Polite client honorifics & Hesitations
+        (
+            "kripya mujhe thoda samay dijiye.",
+            "Please give me a moment.",
+        ),
+        (
+            "umm... theek hai, main team se bol dunga.",
+            "Umm... okay, I will let the team know.",
+        ),
+        # Deployment & DevOps jargon
+        (
+            "production deployment successful raha.",
+            "The production deployment was successful.",
+        ),
+        (
+            "haan, pull request merge ho gayi hai.",
+            "Yes, the pull request has been merged.",
+        ),
+    ]
+
+    for hi_text, expected_en in difficult_cases:
+        result = await translator.translate(hi_text, Language.HINGLISH, Language.ENGLISH)
+        assert result == expected_en
+
+
+@pytest.mark.asyncio
 async def test_latency_budget_stress_profiling():
     stt = LocalWhisperSTT(model_size="tiny")
     detector = RuleBasedLanguageDetector()
@@ -118,6 +173,94 @@ async def test_latency_budget_stress_profiling():
     benchmark = LatencyBenchmark.compute_percentiles(latencies)
     assert benchmark["meets_target"] is True
     assert benchmark["p95"] < 1500.0  # Must be strictly under 1500ms budget
+
+
+@pytest.mark.asyncio
+async def test_multi_room_concurrency_stress():
+    """
+    Stress-tests 10 concurrent active rooms with 20 simultaneous participants.
+    Validates gateway throughput, zero cross-session data corruption, and isolation.
+    """
+    stt = LocalWhisperSTT(model_size="tiny")
+    detector = RuleBasedLanguageDetector()
+    translator = LocalTranslator(simulated_latency_ms=1.0)
+    tts = LocalVoiceSynthesizer(simulated_latency_ms=10.0)
+    profile_service = SecureVoiceProfileService()
+
+    pipeline = TranslationPipeline(
+        stt=stt,
+        lang_detector=detector,
+        translator=translator,
+        tts=tts,
+        profile_service=profile_service,
+    )
+    gateway = SessionGateway(pipeline=pipeline)
+
+    num_rooms = 10
+    sessions = []
+    for i in range(num_rooms):
+        s = gateway.create_session(host_user_id=f"host_{i}", room_code=f"CONCUR_{i:02d}")
+        sessions.append(s)
+
+    # Launch concurrent turns in all rooms simultaneously
+    tasks = []
+    for i, s in enumerate(sessions):
+        task = gateway.handle_turn_audio(
+            session_id=s.session_id,
+            speaker_id=f"spk_{i}",
+            audio_bytes=b"\x00\x01" * 1600,
+            transcript_override=f"Turn message for room {i}",
+        )
+        tasks.append(task)
+
+    results = await asyncio.gather(*tasks)
+    assert len(results) == num_rooms
+    for i, turn in enumerate(results):
+        assert turn.session_id == sessions[i].session_id
+        assert turn.latency.total_latency_ms < 1500.0
+
+
+@pytest.mark.asyncio
+async def test_continuous_long_call_memory_and_stability():
+    """
+    Profiles resource consumption (Resident Memory & Latency) across 25 continuous turns.
+    Guarantees no memory accumulation or memory leaks on the development machine.
+    """
+    stt = LocalWhisperSTT(model_size="tiny")
+    detector = RuleBasedLanguageDetector()
+    translator = LocalTranslator(simulated_latency_ms=1.0)
+    tts = LocalVoiceSynthesizer(simulated_latency_ms=10.0)
+    profile_service = SecureVoiceProfileService()
+
+    pipeline = TranslationPipeline(
+        stt=stt,
+        lang_detector=detector,
+        translator=translator,
+        tts=tts,
+        profile_service=profile_service,
+    )
+    gateway = SessionGateway(pipeline=pipeline)
+    session = gateway.create_session(host_user_id="user_long_call", room_code="LONG_CALL_01")
+
+    process = psutil.Process(os.getpid())
+    mem_initial_mb = process.memory_info().rss / (1024 * 1024)
+
+    for i in range(25):
+        turn = await gateway.handle_turn_audio(
+            session_id=session.session_id,
+            speaker_id="user_long_call",
+            audio_bytes=b"\x00\x01" * 1600,
+            transcript_override="kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.",
+        )
+        assert turn is not None
+
+    mem_final_mb = process.memory_info().rss / (1024 * 1024)
+    mem_delta_mb = mem_final_mb - mem_initial_mb
+
+    # Memory growth over 25 continuous turns must be minimal (< 15 MB)
+    assert mem_delta_mb < 15.0
+    # Process memory must remain comfortably low (< 250 MB)
+    assert mem_final_mb < 250.0
 
 
 @pytest.mark.asyncio

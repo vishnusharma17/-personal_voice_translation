@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   voicebridge-app:
     build:
@@ -7,18 +5,17 @@ services:
       dockerfile: Dockerfile
     container_name: voicebridge_platform
     ports:
-      - "8000:8000"
+      - "8080:8000"
     environment:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=false
+      - OFFLINE_MODE=true
+      - LOCAL_ONLY=true
+      - STT_PROVIDER=local
+      - TRANSLATION_PROVIDER=local
+      - TTS_PROVIDER=local
       - JWT_SECRET=pvt-production-secret-key-change-in-env-32-bytes!
-      - STT_PROVIDER=whisper
-      - TRANSLATION_PROVIDER=gemini
-      - TTS_PROVIDER=elevenlabs
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
     volumes:
       - voicebridge_data:/app/data
     restart: unless-stopped

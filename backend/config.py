@@ -47,6 +47,24 @@ class AppSettings(BaseModel):
     audio_channels: int = Field(default=1, description="Number of audio channels (mono)")
     chunk_size_ms: int = Field(default=100, description="Streaming chunk buffer size in milliseconds")
     silence_threshold_ms: int = Field(default=600, description="Silence duration in ms to trigger end of turn")
+
+    # WebRTC ICE & NAT Traversal Defaults (Configurable for LAN / WAN deployments)
+    stun_server_url: str = Field(
+        default_factory=lambda: os.getenv("STUN_SERVER_URL", "stun:stun.l.google.com:19302"),
+        description="STUN server URL for WebRTC NAT discovery",
+    )
+    turn_server_url: str = Field(
+        default_factory=lambda: os.getenv("TURN_SERVER_URL", ""),
+        description="Optional TURN relay server URL for symmetric NAT traversal",
+    )
+    turn_username: str = Field(
+        default_factory=lambda: os.getenv("TURN_USERNAME", ""),
+        description="Optional TURN relay authentication username",
+    )
+    turn_credential: str = Field(
+        default_factory=lambda: os.getenv("TURN_CREDENTIAL", ""),
+        description="Optional TURN relay authentication credential",
+    )
     
     # Provider Settings (Pluggable: local | mock | whisper | gemini | elevenlabs)
     stt_provider: str = Field(

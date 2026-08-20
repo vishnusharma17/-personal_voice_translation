@@ -32,9 +32,24 @@ const VAD_SILENCE_FRAMES_LIMIT = 8; // ~400ms at 50ms chunks
 
 // WebRTC Peer Connection State
 let peerConnection = null;
-const rtcConfig = {
+let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
+
+async function loadIceConfig() {
+  try {
+    const res = await fetch("/api/config/ice-servers");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.iceServers && data.iceServers.length > 0) {
+        rtcConfig = data;
+      }
+    }
+  } catch (err) {
+    console.debug("Defaulting to local STUN candidate routing:", err);
+  }
+}
+loadIceConfig();
 
 // DOM Elements
 const conversationStream = document.getElementById("conversation-stream");

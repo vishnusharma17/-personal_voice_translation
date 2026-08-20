@@ -1,11 +1,12 @@
 """
 Main Application Entrypoint
-FastAPI Application for Personal Voice Translation Realtime Engine.
+FastAPI Application for Personal Voice Translation Realtime Engine with Secure Transport,
+Dynamic WebRTC ICE/STUN/TURN Configuration, and Security Headers Middleware.
 """
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -19,6 +20,17 @@ app = FastAPI(
     version=settings.app_version,
     description="Real-time Personal Voice Translation Platform with low latency, voice identity preservation, and session isolation.",
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "microphone=(self), camera=()"
+    return response
 
 # CORS
 app.add_middleware(
@@ -42,12 +54,28 @@ async def health_check():
         "app": settings.app_name,
         "version": settings.app_version,
         "target_latency_budget_ms": settings.target_latency_budget_ms,
+        "offline_mode": settings.offline_mode,
+        "local_only": settings.local_only,
         "providers": {
             "stt": settings.stt_provider,
             "translation": settings.translation_provider,
             "tts": settings.tts_provider,
         },
     }
+
+
+@app.get("/api/config/ice-servers")
+async def get_ice_servers():
+    """Returns dynamic WebRTC ICE configuration (STUN/TURN) configured for this environment."""
+    servers = [{"urls": settings.stun_server_url}]
+    if settings.turn_server_url:
+        turn_entry = {"urls": settings.turn_server_url}
+        if settings.turn_username:
+            turn_entry["username"] = settings.turn_username
+        if settings.turn_credential:
+            turn_entry["credential"] = settings.turn_credential
+        servers.append(turn_entry)
+    return {"iceServers": servers}
 
 
 # Mount frontend static directory if exists
