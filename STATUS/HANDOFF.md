@@ -3,30 +3,32 @@
 Use this as the resume checkpoint.
 
 ## Last task
-Phase 3 — Realtime WebRTC Sessions, Turn Interruption, and Reconnection Resilience.
+Phase 4 — Quality, Voice Similarity, Translation Fidelity, Latency Stress-Testing, and Security Audit.
 
 ## What was completed
-- Built WebRTC peer signaling (SDP offer/answer and ICE candidate routing) in `SessionGateway`.
-- Implemented real-time turn interruption / barge-in cancellation (`interrupt_playback`).
-- Added automatic session reconnection with conversation state and turn history recovery (`session_reconnected`).
-- Enhanced `EnergyVAD` with noise-adaptive background floor tracking.
-- Updated client UI in `frontend/js/app.js` with interruption and reconnect event handlers.
-- Created Phase 3 integration test suite (40 tests passing).
+- Built evaluation metrics suite (`VoiceSimilarityEvaluator`, `TranslationQualityEvaluator`, `LatencyBenchmark`) in `backend/core/evaluation.py`.
+- Evaluated voice similarity spectral centroids and timbre preservation.
+- Evaluated Hindi/Hinglish <-> English conversational translation fidelity and naturalness.
+- Ran multi-turn latency stress tests (p50/p95/p99 percentiles all < 1500ms target budget).
+- Verified cryptographic token tamper resistance, session isolation, and GDPR data minimization.
+- 44 unit and integration tests passing.
 
 ## What was tested
-- 40 unit and integration tests passing (`pytest tests/`).
+- 44 unit and integration tests passing (`pytest tests/`).
 - Verified:
-  - Turn interruption playback halt on listener clients.
-  - Targeted WebRTC SDP/ICE candidate routing between peers.
-  - Reconnection state recovery.
-  - Adaptive noise floor VAD.
+  - Spectral similarity between voice profile and synthetic output (>= 70%).
+  - Translation fidelity and naturalness score (1.0).
+  - Latency stress p95 < 1500ms.
+  - Security token tamper validation & GDPR profile wipe.
 
 ## Current unfinished work
-Phase 3 is complete. Ready for Phase 4 (Quality, Voice Similarity, Translation Naturalness, and Security/Privacy Auditing).
+Phase 4 is complete. Ready for Phase 5 (Production deployment container, environment template, and observability runbooks).
 
 ## Exact next step
-Implement Phase 4 automated benchmarking suite for voice similarity metrics, semantic translation accuracy, latency stress-testing, and security audit.
+Create `Dockerfile`, `docker-compose.yml`, `.env.example`, and production deployment configurations.
 
 ## Files needing attention
-- `tests/integration/`
-- `backend/core/pipeline.py`
+- `Dockerfile`
+- `docker-compose.yml`
+- `.env.example`
+

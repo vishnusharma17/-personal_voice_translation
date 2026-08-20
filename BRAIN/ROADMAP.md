@@ -31,13 +31,13 @@
 - [x] Session isolation
 
 ## Phase 4 — Quality & Safety
-- [ ] Voice similarity evaluation
-- [ ] Translation evaluation
-- [ ] Latency measurement
-- [ ] Reliability testing
-- [ ] Security audit
-- [ ] Privacy audit
-- [ ] Abuse prevention
+- [x] Voice similarity evaluation
+- [x] Translation evaluation
+- [x] Latency measurement
+- [x] Reliability testing
+- [x] Security audit
+- [x] Privacy audit
+- [x] Abuse prevention
 
 ## Phase 5 — Production
 - [ ] Deployment
