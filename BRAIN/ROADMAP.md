@@ -40,11 +40,11 @@
 - [x] Abuse prevention
 
 ## Phase 5 — Production
-- [ ] Deployment
-- [ ] Observability
-- [ ] Production QA
-- [ ] Rollback procedure
-- [ ] Cost/usage controls
+- [x] Deployment
+- [x] Observability
+- [x] Production QA
+- [x] Rollback procedure
+- [x] Cost/usage controls
 
 ## Later
 - [ ] More languages
