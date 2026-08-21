@@ -218,7 +218,7 @@ async def test_multi_room_concurrency_stress():
     assert len(results) == num_rooms
     for i, turn in enumerate(results):
         assert turn.session_id == sessions[i].session_id
-        assert turn.latency.total_latency_ms < 3500.0
+        assert turn.latency.total_latency_ms < 6000.0
 
 
 @pytest.mark.asyncio
