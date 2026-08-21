@@ -42,25 +42,39 @@ class MockSpeechRecognizer(SpeechRecognizer):
 
         await asyncio.sleep(self.simulated_latency_ms / 1000.0)
         
-        final_text = self.test_transcript_override or "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga."
-        self.test_transcript_override = None
+        if self.test_transcript_override:
+            final_text = self.test_transcript_override
+            self.test_transcript_override = None
+        elif source_language == Language.ENGLISH:
+            final_text = "Yes, that sounds good. Let's have the meeting tomorrow."
+        else:
+            final_text = "Kal 11 baje client ke saath meeting hai, main project ka demo dikhaunga."
+
+        detected = "en" if source_language == Language.ENGLISH else "hi-en"
 
         yield {
             "text": final_text,
             "is_final": True,
             "confidence": 0.98,
-            "detected_language": "hi-en" if "baje" in final_text.lower() else "en",
+            "detected_language": detected,
         }
 
     async def transcribe_chunk(
         self, audio_bytes: bytes, source_language: Language | None = None
     ) -> dict:
         await asyncio.sleep(self.simulated_latency_ms / 1000.0)
-        final_text = self.test_transcript_override or "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga."
-        self.test_transcript_override = None
+        if self.test_transcript_override:
+            final_text = self.test_transcript_override
+            self.test_transcript_override = None
+        elif source_language == Language.ENGLISH:
+            final_text = "Yes, that sounds good. Let's have the meeting tomorrow."
+        else:
+            final_text = "Kal 11 baje client ke saath meeting hai, main project ka demo dikhaunga."
+
+        detected = "en" if source_language == Language.ENGLISH else "hi-en"
         return {
             "text": final_text,
             "is_final": True,
             "confidence": 0.98,
-            "detected_language": "hi-en" if "baje" in final_text.lower() else "en",
+            "detected_language": detected,
         }

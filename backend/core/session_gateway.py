@@ -227,6 +227,13 @@ class SessionGateway:
         speaker_name = speaker.display_name if speaker else "User"
         source_lang = speaker.preferred_speaking_language if speaker else Language.HINDI
 
+        # Determine target language from recipient peer(s) in room
+        target_lang = None
+        for pid, p in session.participants.items():
+            if pid != speaker_id and p.preferred_listening_language:
+                target_lang = p.preferred_listening_language
+                break
+
         # Get context of previous turns in this session
         history = self._conversation_history.get(session_id, [])
         context_payload = [
@@ -246,6 +253,7 @@ class SessionGateway:
                 speaker_name=speaker_name,
                 audio_bytes=audio_bytes,
                 source_language_hint=source_lang,
+                target_language_preference=target_lang,
                 conversation_context=context_payload,
                 transcript_override=transcript_override,
             )
@@ -269,6 +277,7 @@ class SessionGateway:
                 "translated_text": turn.translated_text,
                 "confidence": turn.confidence,
                 "latency": turn.latency.model_dump(),
+                "diagnostics": turn.diagnostics.model_dump() if turn.diagnostics else None,
             },
         )
 
@@ -286,6 +295,7 @@ class SessionGateway:
                                 "data": {
                                     "turn_id": turn.turn_id,
                                     "speaker_id": speaker_id,
+                                    "speaker_name": speaker_name,
                                     "audio_base64": audio_b64,
                                     "mime_type": "audio/wav",
                                 }

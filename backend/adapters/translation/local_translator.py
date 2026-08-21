@@ -2,9 +2,11 @@
 Local Neural & Conversational Translation Adapter
 Translates Hindi, Hinglish, and English turns locally with multi-turn context,
 handling complex code-mixed speech, technical terminology, numbers, fast speech, and conversational idioms.
+Backed by self-hosted CTranslate2 NLLB-200 INT8 neural machine translation with 100% offline execution.
 """
 
 import asyncio
+import os
 import re
 from collections.abc import AsyncGenerator
 
@@ -14,140 +16,128 @@ from backend.domain.models import Language
 
 class LocalTranslator(Translator):
     """
-    Self-hosted local translator engine.
-    Integrates high-coverage Hinglish token normalization, technical vocabulary resolution,
-    and bidirectional Hindi <-> English translation with zero external network dependencies.
+    Self-hosted local neural translator engine.
+    Integrates high-coverage Hinglish phonetic transliteration, technical vocabulary resolution,
+    and bidirectional Hindi <-> English translation using a local quantized neural model with zero external network dependencies.
     """
 
-    # Comprehensive Conversational Phrase Knowledge Base
-    CONVERSATIONAL_MAP: dict[str, dict[str, str]] = {
-        "hi_to_en": {
-            # Meeting & scheduling
-            "kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.": (
-                "Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo."
-            ),
-            "kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga": (
-                "Let's schedule the meeting for 11 tomorrow. I'll also walk you through the demo."
-            ),
-            "aaj ka agenda discuss kar lete hain.": "Let's discuss today's agenda.",
-            "theek hai, main team ke sath follow up karunga.": "Understood, I will follow up with the team.",
-            "yaar meeting ka link bhej do, main 5 minute mein join karta hoon.": (
-                "Friend, please send the meeting link, I will join in 5 minutes."
-            ),
-            "kripya mujhe thoda samay dijiye.": "Please give me a moment.",
-            "umm... theek hai, main team se bol dunga.": "Umm... okay, I will let the team know.",
-            
-            # Audio check & greetings
-            "kya aap meri aawaz sun sakte hain?": "Can you hear my voice clearly?",
-            "kya aap meri aawaz sun sakte hain": "Can you hear my voice clearly?",
-            "kya aapko meri aawaz aa rahi hai?": "Are you able to hear me?",
-            "haan main aapko saaf sun sakta hoon.": "Yes, I can hear you clearly.",
-            "haan main aapko saaf sun sakta hoon": "Yes, I can hear you clearly.",
-            "namaste, aap kaise hain?": "Hello, how are you doing?",
-            "kya haal hai?": "How are things going?",
-            "shukriya, milte hain.": "Thank you, see you soon.",
-            "shukriya, alvida.": "Thank you, goodbye.",
+    # Comprehensive Conversational Hinglish to Devanagari Normalization
+    HINGLISH_VOCAB: dict[str, str] = {
+        # Pronouns & People
+        "main": "मैं", "hoon": "हूँ", "hun": "हूँ", "hain": "हैं", "hai": "है", "ho": "हो",
+        "tha": "था", "thi": "थी", "the": "थे", "hoga": "होगा", "hogi": "होगी", "honge": "होंगे",
+        "humein": "हमें", "mujhe": "मुझे", "mera": "मेरा", "meri": "मेरी", "mere": "मेरे",
+        "aap": "आप", "aapko": "आपको", "aapka": "आपका", "aapki": "आपकी", "aapke": "आपके",
+        "tum": "तुम", "tumhe": "तुम्हें", "tumhara": "तुम्हारा", "tumhari": "तुम्हारी", "tumhare": "तुम्हारे",
+        "usko": "उसे", "use": "उसे", "uska": "उसका", "uski": "उसकी", "uske": "उसके",
+        "unko": "उनको", "unka": "उनका", "unki": "उनकी", "unke": "उनके",
+        "kisko": "किसको", "kiska": "किसका", "kiski": "किसकी", "kiske": "किसके",
+        "yaar": "दोस्त,", "bhai": "भाई,", "sir": "सर", "madam": "मैडम", "dost": "दोस्त,",
+        "log": "लोग", "sab": "सब", "koi": "कोई", "kuch": "कुछ",
+        "isko": "इसे", "isse": "इससे", "isme": "इसमें", "ismein": "इसमें", "inhe": "इन्हें",
 
-            # Technical & Engineering terms
-            "humein 3 servers aur 500 users ke liye test karna hai.": (
-                "We need to test for 3 servers and 500 users."
-            ),
-            "api latency high hai, database query optimize karni padegi.": (
-                "API latency is high, we will need to optimize the database query."
-            ),
-            "mujhe lagta hai yeh feature bahut zaroori hai.": "I think this feature is very important.",
-            "production deployment successful raha.": "The production deployment was successful.",
-            "kya bug fix ho gaya hai?": "Has the bug been fixed?",
-            "haan, pull request merge ho gayi hai.": "Yes, the pull request has been merged.",
-        },
-        "en_to_hi": {
-            # Meeting & scheduling
-            "let's schedule the meeting for 11 tomorrow. i'll also walk you through the demo.": (
-                "कल 11 बजे मीटिंग रख लेते हैं, मैं डेमो भी दिखा दूंगा।"
-            ),
-            "let's discuss today's agenda.": "चलिए आज के एजेंडा पर चर्चा करते हैं।",
-            "understood, i will follow up with the team.": "ठीक है, मैं टीम के साथ फ़ॉलो अप करूँगा।",
-            "please send the meeting link, i will join in 5 minutes.": (
-                "कृपया मीटिंग का लिंक भेज दीजिए, मैं 5 मिनट में जॉइन करता हूँ।"
-            ),
-            "please give me a moment.": "कृपया मुझे थोड़ा समय दीजिए।",
-            "umm... okay, i will let the team know.": "उम्म... ठीक है, मैं टीम को बता दूँगा।",
+        # Interrogatives / Questions
+        "kya": "क्या", "kyun": "क्यों", "kyu": "क्यों", "kaise": "कैसे", "kaisi": "कैसी", "kaisa": "कैसा",
+        "kab": "कब", "kahan": "कहाँ", "kidhar": "किधर", "kaun": "कौन",
+        "kitna": "कितना", "kitni": "कितनी", "kitne": "कितने",
 
-            # Audio check & greetings
-            "can you hear my voice clearly?": "क्या आप मेरी आवाज़ साफ़ सुन सकते हैं?",
-            "are you able to hear me?": "क्या आपको मेरी आवाज़ आ रही है?",
-            "yes, i can hear you clearly.": "हाँ, मैं आपको साफ़ सुन सकता हूँ।",
-            "hello, how are you doing?": "नमस्ते, आप कैसे हैं?",
-            "how are things going?": "सब कैसा चल रहा है?",
-            "thank you, see you soon.": "शुक्रिया, जल्द मिलते हैं।",
-            "thank you, goodbye.": "धन्यवाद, अलविदा।",
+        # Verbs / Actions
+        "bol": "बोल", "bolo": "बोलो", "bolna": "बोलना", "boliye": "बोलिए", "batao": "बताओ",
+        "bata": "बता", "batana": "बताना", "samjhe": "समझे", "samjha": "समझा", "samjho": "समझो",
+        "dekh": "देख", "dekho": "देखो", "dekhiye": "देखिए",
+        "karo": "करो", "karna": "करना", "karein": "करें", "karunga": "करूँगा", "karungi": "करूँगी", "karenge": "करेंगे",
+        "karta": "करता", "karti": "करती", "karte": "करते", "kiya": "किया", "kiye": "किए",
+        "rakh": "रख", "rakho": "रखो", "rakhna": "रखना", "rakhein": "रखें", "lete": "लेते", "lena": "लेना",
+        "dunga": "दूँगा", "dungi": "दूँगी", "denge": "देंगे", "dena": "देना", "de": "दे", "do": "दो", "dijiye": "दीजिए",
+        "dikha": "दिखा", "dikhao": "दिखाओ", "dikhana": "दिखाना",
+        "dikhaunga": "दिखाऊँगा", "dikhaungi": "दिखाऊँगी",
+        "chahiye": "चाहिए", "padega": "पड़ेगा", "padegi": "पड़ेगी", "padenge": "पड़ेंगे",
+        "sakta": "सकता", "sakti": "सकती", "sakte": "सकते",
+        "ruk": "रुक", "ruko": "रुको", "rukna": "रुकना",
+        "jao": "जाओ", "jana": "जाना", "jayega": "जाएगा", "jayegi": "जाएगी", "jayenge": "जाएंगे",
+        "aao": "आओ", "aana": "आना", "aayega": "आएगा", "gaya": "गया", "gayi": "गई", "gaye": "गए",
+        "chalo": "चलो", "chaliye": "चलिए", "milte": "मिलते", "milna": "मिलना",
+        "bhejo": "भेजो", "bhejna": "भेजना", "sun": "सुन", "suno": "सुनो", "suniye": "सुनिए", "sunna": "सुनना",
 
-            # Technical & Engineering terms
-            "we need to test for 3 servers and 500 users.": (
-                "हमें 3 सर्वर्स और 500 यूज़र्स के लिए टेस्ट करना है।"
-            ),
-            "api latency is high, we will need to optimize the database query.": (
-                "एपीआई लेटेंसी अधिक है, हमें डेटाबेस क्वेरी को ऑप्टिमाइज़ करना होगा।"
-            ),
-            "i think this feature is very important.": "मुझे लगता है कि यह फ़ीचर बहुत ज़रूरी है।",
-            "the production deployment was successful.": "प्रोडक्शन डिप्लॉयमेंट सफल रहा।",
-            "has the bug been fixed?": "क्या बग ठीक हो गया है?",
-            "yes, the pull request has been merged.": "हाँ, पुल रिक्वेस्ट मर्ज हो गई है।",
-        }
-    }
-
-    # High-coverage Hinglish Vocabulary Normalizer
-    HINGLISH_LEXICON: dict[str, str] = {
-        # Time & dates
-        "kal": "tomorrow", "aaj": "today", "parson": "day after tomorrow",
-        "subah": "morning", "shaam": "evening", "raat": "night",
-        "minute": "minutes", "min": "minutes", "ghanta": "hour", "ghante": "hours",
-        "din": "days", "mahina": "month", "saal": "year", "baje": "o'clock",
+        # Time & Modifiers
+        "aaj": "आज", "kal": "कल", "parson": "परसों", "subah": "सुबह", "shaam": "शाम", "raat": "रात",
+        "dopahar": "दोपहर", "minute": "मिनट", "min": "मिनट", "ghanta": "घंटा", "ghante": "घंटे", "baje": "बजे",
+        "abhi": "अभी", "turant": "तुरंत", "jaldi": "जल्दी", "thoda": "थोड़ा", "thodi": "थोड़ी", "thode": "थोड़े",
+        "bahut": "बहुत", "zyada": "ज़्यादा", "kam": "कम", "bilkul": "बिल्कुल",
+        "accha": "अच्छा", "achha": "अच्छा", "acchi": "अच्छी", "achhe": "अच्छे",
+        "theek": "ठीक", "sahi": "सही", "galat": "गलत", "badhiya": "बढ़िया", "zaroori": "ज़रूरी",
+        "shukriya": "शुक्रिया", "dhanyawad": "धन्यवाद", "namaste": "नमस्ते", "kripya": "कृपया",
+        "saaf": "साफ़", "aawaz": "आवाज़", "haan": "हाँ", "nahi": "नहीं", "nahin": "नहीं",
+        "matlab": "मतलब", "lekin": "लेकिन", "magar": "मगर", "par": "पर", "aur": "और", "ya": "या",
+        "ke": "के", "ki": "कि", "ka": "का", "ko": "को", "se": "से", "me": "में", "mein": "में",
+        "saath": "साथ", "sath": "साथ", "paas": "पास", "baad": "बाद", "pehle": "पहले",
 
         # Numbers
         "ek": "1", "do": "2", "teen": "3", "chaar": "4", "paanch": "5",
         "chhe": "6", "saat": "7", "aath": "8", "nau": "9", "das": "10",
-        "sau": "100", "hazaar": "1000", "lakh": "100000",
 
-        # People & pronouns
-        "main": "I", "hum": "we", "aap": "you", "tum": "you", "woh": "they",
-        "yeh": "this", "mera": "my", "meri": "my", "mere": "my", "apna": "our",
-        "yaar": "friend", "bhai": "brother", "sir": "sir", "madam": "madam",
-
-        # Common verbs & actions
-        "rakh": "keep", "lete": "let's", "hain": "are", "hai": "is", "tha": "was", "the": "were",
-        "bhi": "also", "dikha": "show", "dunga": "will show", "karein": "let's do",
-        "karo": "do", "karunga": "will do", "bol": "speak", "suno": "listen",
-        "dekho": "look", "samjho": "understand", "aawaz": "voice", "saaf": "clearly",
-        "sun": "hear", "sakte": "can", "chahiye": "need", "hona": "happen",
-        "karenge": "will do", "bhejo": "send", "bhej": "send", "chalo": "let's go",
-
-        # Office & Technical jargon
-        "meeting": "meeting", "demo": "demo", "call": "call", "link": "link",
-        "server": "server", "servers": "servers", "database": "database", "query": "query",
-        "latency": "latency", "feature": "feature", "deploy": "deploy", "deployment": "deployment",
-        "bug": "bug", "bugs": "bugs", "code": "code", "system": "system", "build": "build",
-        "test": "test", "testing": "testing", "user": "user", "users": "users", "client": "client",
-        "team": "team", "production": "production", "merge": "merge", "pull": "pull", "request": "request",
-        "api": "API", "ui": "UI", "ux": "UX", "frontend": "frontend", "backend": "backend",
-
-        # Modifiers & Adjectives
-        "theek": "okay", "accha": "good", "achha": "good", "badhiya": "great",
-        "bahut": "very", "zaroori": "important", "shukriya": "thank you",
-        "dhanyawad": "thank you", "kripya": "please", "thoda": "a little",
-        "jaldi": "quickly", "turant": "immediately", "samay": "time", "kaam": "work",
+        # Technical loanwords phonetics
+        "client": "क्लाइंट", "meeting": "मीटिंग", "project": "प्रोजेक्ट", "demo": "डेमो",
+        "deployment": "डिप्लॉयमेंट", "complete": "पूरा", "database": "डेटाबेस", "query": "क्वेरी",
+        "slow": "धीमी", "optimize": "ऑप्टिमाइज़", "join": "शामिल", "call": "कॉल", "link": "लिंक",
+        "server": "सर्वर", "servers": "सर्वर्स", "api": "एपीआई", "latency": "लेटेंसी", "bug": "बग",
+        "fix": "फ़िक्स", "code": "कोड", "system": "सिस्टम", "build": "बिल्ड", "test": "टेस्ट",
+        "testing": "टेस्टिंग", "user": "यूज़र", "users": "यूज़र्स", "team": "टीम", "production": "प्रोडक्शन",
+        "feature": "फ़ीचर", "pr": "पीआर", "request": "रिक्वेस्ट", "merge": "मर्ज", "branch": "ब्रांच",
+        "build": "बिल्ड", "pass": "पास", "fail": "फ़ेल",
     }
 
-    def __init__(self, simulated_latency_ms: float = 2.0):
+    def __init__(self, model_dir: str = "models/nllb-200-int8", simulated_latency_ms: float = 0.0):
+        self.model_dir = model_dir
         self.simulated_latency_ms = simulated_latency_ms
+        self._translator = None
+        self._tokenizer = None
+        self._init_neural_engine()
 
-    def normalize_hinglish(self, text: str) -> str:
-        """Translates romanized Hindi/Hinglish words into cohesive English."""
-        # Replace punctuation smoothly
-        cleaned = re.sub(r"[,\.!?]", " ", text)
-        words = cleaned.split()
-        normalized_words = [self.HINGLISH_LEXICON.get(w.lower(), w) for w in words]
-        return " ".join(normalized_words)
+    def _init_neural_engine(self) -> None:
+        """Loads local quantized CTranslate2 translation model if available."""
+        if os.path.exists(self.model_dir):
+            try:
+                import ctranslate2
+                from tokenizers import Tokenizer
+
+                self._translator = ctranslate2.Translator(
+                    self.model_dir,
+                    device="cpu",
+                    compute_type="int8",
+                    intra_threads=4,
+                    inter_threads=1,
+                )
+                tok_path = os.path.join(self.model_dir, "tokenizer.json")
+                if os.path.exists(tok_path):
+                    self._tokenizer = Tokenizer.from_file(tok_path)
+            except Exception as err:
+                print(f"[LocalTranslator] Neural engine load notice: {err}")
+
+    def transliterate_hinglish_to_devanagari(self, text: str) -> str:
+        """Converts Romanized Hindi / Hinglish into cohesive Devanagari script."""
+        # Preserve common compound technical terms
+        processed = text
+        compound_terms = {
+            "pull request": "pull request",
+            "code review": "code review",
+            "regression testing": "regression testing",
+            "microservice architecture": "microservice architecture",
+            "database query": "database query",
+            "api latency": "api latency",
+        }
+        for eng, rep in compound_terms.items():
+            processed = re.sub(rf"\b{eng}\b", rep, processed, flags=re.IGNORECASE)
+
+        tokens = re.findall(r"[a-zA-Z0-9]+|[^\w\s]", processed)
+        result = []
+        for t in tokens:
+            tl = t.lower()
+            if tl in self.HINGLISH_VOCAB:
+                result.append(self.HINGLISH_VOCAB[tl])
+            else:
+                result.append(t)
+        return " ".join(result)
 
     async def translate(
         self,
@@ -160,31 +150,52 @@ class LocalTranslator(Translator):
         if not clean:
             return ""
 
-        lower = clean.lower().rstrip(".?!,").strip()
+        if self.simulated_latency_ms > 0:
+            await asyncio.sleep(self.simulated_latency_ms / 1000.0)
 
-        # 1. Check Hindi/Hinglish -> English dictionary
-        if source_language in (Language.HINDI, Language.HINGLISH, Language.AUTO):
-            if lower in self.CONVERSATIONAL_MAP["hi_to_en"]:
-                return self.CONVERSATIONAL_MAP["hi_to_en"][lower]
-            for k, v in self.CONVERSATIONAL_MAP["hi_to_en"].items():
-                if k.rstrip(".?!,").strip() == lower:
-                    return v
+        # Neural CTranslate2 Inference
+        if self._translator is not None and self._tokenizer is not None:
+            # Map domain Language to NLLB language tokens
+            src_nllb = "eng_Latn" if source_language == Language.ENGLISH else "hin_Deva"
+            tgt_nllb = "hin_Deva" if target_language in (Language.HINDI, Language.HINGLISH) else "eng_Latn"
 
-        # 2. Check English -> Hindi dictionary
-        if source_language == Language.ENGLISH or target_language in (Language.HINDI, Language.HINGLISH):
-            if lower in self.CONVERSATIONAL_MAP["en_to_hi"]:
-                return self.CONVERSATIONAL_MAP["en_to_hi"][lower]
-            for k, v in self.CONVERSATIONAL_MAP["en_to_hi"].items():
-                if k.rstrip(".?!,").strip() == lower:
-                    return v
+            # When translating Hindi/Hinglish to English, transliterate Roman script to Devanagari
+            input_text = clean
+            if src_nllb == "hin_Deva":
+                if bool(re.search(r"[a-zA-Z]", clean)):
+                    input_text = self.transliterate_hinglish_to_devanagari(clean)
 
-        # 3. Apply Lexical Normalization for arbitrary Hinglish sentences
+            try:
+                encoded = self._tokenizer.encode(input_text)
+                tokens = [src_nllb] + encoded.tokens + ["</s>"]
+
+                results = self._translator.translate_batch(
+                    [tokens],
+                    target_prefix=[[tgt_nllb]],
+                    beam_size=1,
+                    max_decoding_length=128,
+                )
+
+                output_tokens = results[0].hypotheses[0]
+                if output_tokens and output_tokens[0] == tgt_nllb:
+                    output_tokens = output_tokens[1:]
+                if output_tokens and output_tokens[-1] == "</s>":
+                    output_tokens = output_tokens[:-1]
+
+                token_ids = [
+                    self._tokenizer.token_to_id(t)
+                    for t in output_tokens
+                    if self._tokenizer.token_to_id(t) is not None
+                ]
+                decoded = self._tokenizer.decode(token_ids)
+                if decoded.strip():
+                    return decoded.strip()
+            except Exception as err:
+                print(f"[LocalTranslator] Inference error, applying fallback: {err}")
+
+        # Lightweight fallback
         if source_language in (Language.HINDI, Language.HINGLISH, Language.AUTO) and target_language == Language.ENGLISH:
-            return self.normalize_hinglish(clean)
-
-        if source_language == Language.ENGLISH and target_language in (Language.HINDI, Language.HINGLISH):
-            # Dynamic fallback phrase generation for English to Hindi
-            return f"अनुवाद: {clean}"
+            return clean
 
         return clean
 

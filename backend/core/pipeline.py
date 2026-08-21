@@ -97,10 +97,18 @@ class TranslationPipeline:
         effective_target: Language
         if detected_lang in (Language.HINDI, Language.HINGLISH):
             effective_source = detected_lang
-            effective_target = target_language_preference or Language.ENGLISH
+            effective_target = (
+                target_language_preference
+                if target_language_preference and target_language_preference not in (Language.HINDI, Language.HINGLISH)
+                else Language.ENGLISH
+            )
         else:
             effective_source = Language.ENGLISH
-            effective_target = target_language_preference or Language.HINDI
+            effective_target = (
+                target_language_preference
+                if target_language_preference and target_language_preference != Language.ENGLISH
+                else Language.HINDI
+            )
 
         # 3. Context-Aware Natural Translation
         t2 = time.perf_counter()
@@ -132,8 +140,25 @@ class TranslationPipeline:
         )
         t5 = time.perf_counter()
         latency.tts_ms = round((t5 - t4) * 1000.0, 2)
+        latency.total_latency_ms = round(latency.vad_ms + latency.stt_ms + latency.translation_ms + latency.tts_ms, 2)
 
-        latency.compute_total()
+        # 5. Developer Diagnostics
+        normalized_transcript = source_text
+        if effective_source in (Language.HINDI, Language.HINGLISH):
+            if hasattr(self.translator, "transliterate_hinglish_to_devanagari"):
+                normalized_transcript = self.translator.transliterate_hinglish_to_devanagari(source_text)
+
+        from backend.domain.models import TurnDiagnostics
+        diagnostics = TurnDiagnostics(
+            source_audio_duration_sec=round(len(audio_bytes) / 32000.0, 2) if audio_bytes else 0.0,
+            source_audio_samples=len(audio_bytes) // 2 if audio_bytes else 0,
+            source_language=effective_source.value,
+            raw_stt_transcript=source_text,
+            normalized_transcript=normalized_transcript,
+            translated_text=translated_text,
+            target_language=effective_target.value,
+            tts_input_text=translated_text,
+        )
 
         turn = Turn(
             turn_id=turn_id,
@@ -147,6 +172,7 @@ class TranslationPipeline:
             confidence=float(stt_result["confidence"]) if "confidence" in stt_result and isinstance(stt_result["confidence"], (int, float)) else 1.0,
             is_final=True,
             latency=latency,
+            diagnostics=diagnostics,
         )
 
         return turn, synthesized_audio

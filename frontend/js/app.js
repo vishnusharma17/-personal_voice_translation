@@ -3,8 +3,47 @@
  * Complete Local-First Real-Time Studio Controller
  */
 
+// Room Code Validation & Session State
+function validateRoomCode(raw) {
+  if (raw === null || raw === undefined) {
+    return { valid: false, value: "", message: "Room code cannot be empty." };
+  }
+  const trimmed = String(raw).trim();
+  if (trimmed.length === 0) {
+    return { valid: false, value: "", message: "Room code cannot be empty." };
+  }
+  const validPattern = /^[A-Za-z0-9_-]+$/;
+  if (!validPattern.test(trimmed)) {
+    return {
+      valid: false,
+      value: trimmed,
+      message: "Only letters, numbers, hyphens (-) and underscores (_) allowed."
+    };
+  }
+  if (trimmed.length < 2) {
+    return { valid: false, value: trimmed, message: "Room code must be at least 2 characters." };
+  }
+  if (trimmed.length > 40) {
+    return { valid: false, value: trimmed, message: "Room code cannot exceed 40 characters." };
+  }
+  return { valid: true, value: trimmed, message: "" };
+}
+
+function getInitialRoomCode() {
+  try {
+    const saved = sessionStorage.getItem("pvt_room_code");
+    if (saved) {
+      const check = validateRoomCode(saved);
+      if (check.valid) return check.value;
+    }
+  } catch (e) {
+    console.debug("sessionStorage read error:", e);
+  }
+  return "PVT-DEMO";
+}
+
 // State
-let currentRoomCode = "PVT-DEMO";
+let currentRoomCode = getInitialRoomCode();
 let currentUserId = "user_rajesh_" + Math.random().toString(36).substring(2, 7);
 let activeConsentId = null;
 let activeVoiceProfile = null;
@@ -68,10 +107,67 @@ function switchTab(tabId) {
   if (targetSection) targetSection.classList.add("active");
 }
 
+// Room Code Input Handler
+function handleRoomCodeInput(val) {
+  const inputEl = document.getElementById("room-code-input");
+  const msgEl = document.getElementById("room-validation-msg");
+  const headerStatus = document.getElementById("header-room-status");
+
+  const validation = validateRoomCode(val);
+
+  if (validation.valid) {
+    currentRoomCode = validation.value;
+    try {
+      sessionStorage.setItem("pvt_room_code", currentRoomCode);
+    } catch (e) {}
+
+    if (inputEl) {
+      inputEl.classList.remove("input-invalid");
+      inputEl.classList.add("input-valid");
+    }
+    if (msgEl) {
+      msgEl.innerText = "";
+      msgEl.className = "room-validation-msg";
+    }
+    if (headerStatus) {
+      headerStatus.innerText = `Room: ${currentRoomCode}`;
+    }
+  } else {
+    if (inputEl) {
+      inputEl.classList.remove("input-valid");
+      inputEl.classList.add("input-invalid");
+    }
+    if (msgEl) {
+      msgEl.innerText = validation.message;
+      msgEl.className = "room-validation-msg error";
+    }
+  }
+}
+
 // Room Generation
 function generateNewRoom() {
-  currentRoomCode = "PVT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  document.getElementById("header-room-status").innerText = `Room: ${currentRoomCode}`;
+  const newCode = "PVT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  currentRoomCode = newCode;
+  try {
+    sessionStorage.setItem("pvt_room_code", currentRoomCode);
+  } catch (e) {}
+
+  const inputEl = document.getElementById("room-code-input");
+  if (inputEl) {
+    inputEl.value = currentRoomCode;
+    inputEl.classList.remove("input-invalid");
+    inputEl.classList.add("input-valid");
+  }
+  const msgEl = document.getElementById("room-validation-msg");
+  if (msgEl) {
+    msgEl.innerText = "";
+    msgEl.className = "room-validation-msg";
+  }
+  const headerStatus = document.getElementById("header-room-status");
+  if (headerStatus) {
+    headerStatus.innerText = `Room: ${currentRoomCode}`;
+  }
+
   if (isCallConnected) {
     disconnectCall();
     connectCall();
@@ -90,12 +186,47 @@ function toggleCallConnection() {
 }
 
 function connectCall() {
+  const roomInput = document.getElementById("room-code-input");
+  const rawInput = roomInput ? roomInput.value : currentRoomCode;
+  const validation = validateRoomCode(rawInput);
+
+  if (!validation.valid) {
+    if (roomInput) {
+      roomInput.classList.remove("input-valid");
+      roomInput.classList.add("input-invalid");
+      roomInput.focus();
+    }
+    const msgEl = document.getElementById("room-validation-msg");
+    if (msgEl) {
+      msgEl.innerText = validation.message;
+      msgEl.className = "room-validation-msg error";
+    }
+    showToast(`Invalid Room Code: ${validation.message}`, "error");
+    return;
+  }
+
+  // Use EXACT validated room code entered by the user
+  currentRoomCode = validation.value;
+  try {
+    sessionStorage.setItem("pvt_room_code", currentRoomCode);
+  } catch (e) {}
+
+  if (roomInput) {
+    roomInput.value = currentRoomCode;
+    roomInput.classList.remove("input-invalid");
+    roomInput.classList.add("input-valid");
+  }
+  const headerStatus = document.getElementById("header-room-status");
+  if (headerStatus) {
+    headerStatus.innerText = `Room: ${currentRoomCode}`;
+  }
+
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const speakerName = document.getElementById("speaker-name-input").value || "Rajesh Sharma";
   const speakLang = document.getElementById("speak-lang-select").value;
   const listenLang = document.getElementById("listen-lang-select").value;
 
-  const wsUrl = `${protocol}//${window.location.host}/ws/call/${currentRoomCode}?user_id=${currentUserId}&display_name=${encodeURIComponent(speakerName)}&speaking_lang=${speakLang}&listening_lang=${listenLang}`;
+  const wsUrl = `${protocol}//${window.location.host}/ws/call/${encodeURIComponent(currentRoomCode)}?user_id=${currentUserId}&display_name=${encodeURIComponent(speakerName)}&speaking_lang=${speakLang}&listening_lang=${listenLang}`;
 
   socket = new WebSocket(wsUrl);
 
@@ -161,6 +292,53 @@ function disconnectCall() {
   stopVisualizer();
 }
 
+// Audio Unlock for Mobile Browsers & User Gestures
+function unlockAudioPlayback() {
+  if (audioPlayer) {
+    audioPlayer.play().then(() => {
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+    }).catch(() => {});
+  }
+  if (audioContext && audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+}
+
+// 16kHz Resampler (Converts any browser/device native sample rate e.g. 44.1k/48k to 16kHz mono)
+function resampleTo16k(inputData, inputSampleRate) {
+  if (!inputSampleRate || inputSampleRate === 16000) {
+    return inputData;
+  }
+  const ratio = inputSampleRate / 16000;
+  const outputLength = Math.round(inputData.length / ratio);
+  const result = new Float32Array(outputLength);
+  for (let i = 0; i < outputLength; i++) {
+    const origIndex = i * ratio;
+    const indexFloor = Math.floor(origIndex);
+    const indexCeil = Math.min(inputData.length - 1, indexFloor + 1);
+    const fraction = origIndex - indexFloor;
+    result[i] = inputData[indexFloor] * (1 - fraction) + inputData[indexCeil] * fraction;
+  }
+  return result;
+}
+
+// Synthetic 16kHz PCM generator for demo prompt turns
+function generateSyntheticPcmBase64(durationMs = 400) {
+  const sampleRate = 16000;
+  const numSamples = Math.floor(sampleRate * (durationMs / 1000));
+  const pcm16 = new Int16Array(numSamples);
+  for (let i = 0; i < numSamples; i++) {
+    pcm16[i] = Math.sin(2 * Math.PI * 440 * (i / sampleRate)) * 6000;
+  }
+  const uint8 = new Uint8Array(pcm16.buffer);
+  let binary = "";
+  for (let i = 0; i < uint8.byteLength; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  return btoa(binary);
+}
+
 // WebRTC Signaling Handling
 function initWebRTCPeer() {
   try {
@@ -215,6 +393,7 @@ async function handleWebRTCSignal(signal) {
 // 2. Real Microphone Streaming & VAD
 // ==========================================
 async function toggleLiveMicrophone() {
+  unlockAudioPlayback();
   if (isLiveMicActive) {
     stopLiveMicrophone();
   } else {
@@ -223,6 +402,7 @@ async function toggleLiveMicrophone() {
 }
 
 async function startLiveMicrophone() {
+  unlockAudioPlayback();
   if (!isCallConnected) {
     connectCall();
   }
@@ -231,20 +411,28 @@ async function startLiveMicrophone() {
     micMediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
-        sampleRate: 16000,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
       }
     });
 
-    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    } catch (e) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+
     micSourceNode = audioContext.createMediaStreamSource(micMediaStream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 512;
 
-    // Buffer processing node for VAD (16kHz PCM chunks)
-    const bufferSize = 2048; // ~128ms
+    // Buffer processing node for VAD (PCM chunks)
+    const bufferSize = 2048;
     scriptProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
 
     micSourceNode.connect(analyserNode);
@@ -269,7 +457,7 @@ async function startLiveMicrophone() {
 
     startLiveVisualizerLoop();
   } catch (err) {
-    alert("Microphone Access Error: " + err.message);
+    alert("Microphone Access Notice: " + err.message + "\nTip: You can also use the Instant Prompt Simulator chips to test live bidirectional translation!");
     console.error("Mic Error:", err);
   }
 }
@@ -299,7 +487,11 @@ function stopLiveMicrophone() {
   startVisualizerIdle();
 }
 
-function processLiveAudioChunk(float32Chunk) {
+function processLiveAudioChunk(rawFloat32) {
+  // Resample to 16kHz Float32 regardless of browser hardware rate (44.1kHz, 48kHz, etc.)
+  const sampleRate = (audioContext && audioContext.sampleRate) ? audioContext.sampleRate : 16000;
+  const float32Chunk = resampleTo16k(rawFloat32, sampleRate);
+
   // 1. Calculate RMS energy in dBFS
   let sumSq = 0;
   for (let i = 0; i < float32Chunk.length; i++) {
@@ -411,6 +603,7 @@ async function simulatePrompt(text) {
 }
 
 async function sendCustomPrompt() {
+  unlockAudioPlayback();
   const inputEl = document.getElementById("custom-prompt-input");
   const text = inputEl.value.trim();
   if (!text) return;
@@ -421,6 +614,17 @@ async function sendCustomPrompt() {
 
   simulateAudioActivity();
 
+  // If live WebSocket is connected, dispatch turn via WebSocket so all room participants receive it in real time!
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: "audio_turn",
+      text_override: text,
+      audio_base64: generateSyntheticPcmBase64(400),
+    }));
+    return;
+  }
+
+  // Fallback to direct HTTP endpoint if not currently in live call
   try {
     const res = await fetch("/api/pipeline/translate-turn", {
       method: "POST",
@@ -445,6 +649,25 @@ async function sendCustomPrompt() {
   } catch (err) {
     console.error("Pipeline Error:", err);
   }
+}
+
+let isDevDiagnosticsEnabled = false;
+
+function toggleDevDiagnostics() {
+  isDevDiagnosticsEnabled = !isDevDiagnosticsEnabled;
+  const btn = document.getElementById("dev-diag-toggle-btn");
+  if (btn) {
+    if (isDevDiagnosticsEnabled) {
+      btn.classList.add("active");
+      btn.innerText = "🛠️ Dev Diag (ON)";
+    } else {
+      btn.classList.remove("active");
+      btn.innerText = "🛠️ Dev Diagnostics";
+    }
+  }
+  document.querySelectorAll(".dev-diagnostics-box").forEach(el => {
+    el.style.display = isDevDiagnosticsEnabled ? "block" : "none";
+  });
 }
 
 // Render Turn to Stream
@@ -472,6 +695,29 @@ function renderTurn(turn, audioB64 = null) {
   const sourceLangLabel = isHindi ? "Hindi / Hinglish" : "English";
   const targetLangLabel = isHindi ? "English (Translated Voice)" : "Hindi (Translated Voice)";
 
+  const diag = turn.diagnostics;
+  const diagHtml = diag ? `
+    <div class="dev-diagnostics-box" style="display: ${isDevDiagnosticsEnabled ? 'block' : 'none'};">
+      <div class="diag-title-tag">⚡ Developer Pipeline Diagnostics</div>
+      <div class="diag-grid">
+        <span class="diag-key">SOURCE AUDIO:</span>
+        <span class="diag-val">${diag.source_audio_duration_sec}s (${(diag.source_audio_samples || 0).toLocaleString()} samples)</span>
+        <span class="diag-key">SOURCE LANGUAGE:</span>
+        <span class="diag-val">${diag.source_language}</span>
+        <span class="diag-key">RAW STT TRANSCRIPT:</span>
+        <span class="diag-val">"${diag.raw_stt_transcript}"</span>
+        <span class="diag-key">NORMALIZED TRANSCRIPT:</span>
+        <span class="diag-val highlight">"${diag.normalized_transcript}"</span>
+        <span class="diag-key">TRANSLATED TEXT:</span>
+        <span class="diag-val highlight">"${diag.translated_text}"</span>
+        <span class="diag-key">TARGET LANGUAGE:</span>
+        <span class="diag-val">${diag.target_language}</span>
+        <span class="diag-key">TTS INPUT TEXT:</span>
+        <span class="diag-val">"${diag.tts_input_text}"</span>
+      </div>
+    </div>
+  ` : '';
+
   turnEl.innerHTML = `
     <div class="turn-header">
       <div class="turn-speaker-info">
@@ -492,6 +738,7 @@ function renderTurn(turn, audioB64 = null) {
         <span>Voice Clone: ${turn.latency ? turn.latency.tts_ms : 0}ms</span> • 
         <span>Confidence: ${Math.round((turn.confidence || 1.0) * 100)}%</span>
       </div>
+      ${diagHtml}
     </div>
   `;
 
@@ -509,12 +756,19 @@ function renderTurn(turn, audioB64 = null) {
 // Play Synthesized Voice Audio
 function playTranslatedAudio(b64Data, speakerName) {
   if (!b64Data) return;
+  unlockAudioPlayback();
   const audioSrc = `data:audio/wav;base64,${b64Data}`;
   audioPlayer.src = audioSrc;
-  document.getElementById("playback-speaker-name").innerText = `${speakerName || 'Authorized Voice'} (Cloned Voice)`;
+  document.getElementById("playback-speaker-name").innerText = `${speakerName || 'Authorized Voice'} (Translated Voice)`;
   document.getElementById("playback-status-text").innerText = "Playing synthesized translation...";
 
-  audioPlayer.play().catch(e => console.log("Auto-play blocked:", e));
+  const playPromise = audioPlayer.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(e => {
+      console.log("Auto-play blocked by browser policy:", e);
+      document.getElementById("playback-status-text").innerText = "Tap 'Play' on audio player (Browser autoplay policy)";
+    });
+  }
   audioPlayer.onended = () => {
     document.getElementById("playback-status-text").innerText = "Finished playback";
   };
@@ -885,4 +1139,16 @@ function stopVisualizer() {
 // Initialize on page load
 window.addEventListener("DOMContentLoaded", () => {
   startVisualizerIdle();
+  const roomInput = document.getElementById("room-code-input");
+  if (roomInput) {
+    roomInput.value = currentRoomCode;
+    const check = validateRoomCode(currentRoomCode);
+    if (check.valid) {
+      roomInput.classList.add("input-valid");
+    }
+  }
+  const headerStatus = document.getElementById("header-room-status");
+  if (headerStatus) {
+    headerStatus.innerText = `Room: ${currentRoomCode}`;
+  }
 });

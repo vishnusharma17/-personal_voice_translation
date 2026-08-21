@@ -78,6 +78,17 @@ class LatencyBreakdown(BaseModel):
         return self.total_latency_ms
 
 
+class TurnDiagnostics(BaseModel):
+    source_audio_duration_sec: float = 0.0
+    source_audio_samples: int = 0
+    source_language: str = "hi"
+    raw_stt_transcript: str = ""
+    normalized_transcript: str = ""
+    translated_text: str = ""
+    target_language: str = "en"
+    tts_input_text: str = ""
+
+
 class Turn(BaseModel):
     turn_id: str
     session_id: str
@@ -91,6 +102,7 @@ class Turn(BaseModel):
     is_final: bool = True
     audio_duration_ms: float = 0.0
     latency: LatencyBreakdown = Field(default_factory=LatencyBreakdown)
+    diagnostics: TurnDiagnostics | None = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

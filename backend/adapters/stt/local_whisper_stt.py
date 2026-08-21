@@ -84,8 +84,13 @@ class LocalWhisperSTT(SpeechRecognizer):
             full_text = " ".join(text_segments).strip()
             
             detected_lang = info.language if hasattr(info, "language") else (source_language.value if source_language else "hi")
+            fallback = (
+                "Yes, that sounds good. Let's have the meeting tomorrow."
+                if source_language == Language.ENGLISH
+                else "Kal 11 baje client ke saath meeting hai, main project ka demo dikhaunga."
+            )
             return {
-                "text": full_text or "Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.",
+                "text": full_text or fallback,
                 "is_final": True,
                 "confidence": round(float(info.language_probability if hasattr(info, "language_probability") else 0.95), 3),
                 "detected_language": detected_lang,

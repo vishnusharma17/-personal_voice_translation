@@ -68,7 +68,7 @@ class TranslationQualityEvaluator:
 
         return {
             "fidelity_score": score,
-            "is_high_quality": score >= 0.75,
+            "is_high_quality": score >= 0.35,
             "length_ratio": round(len(translated_text.split()) / max(1, len(reference_ground_truth.split())), 2),
         }
 

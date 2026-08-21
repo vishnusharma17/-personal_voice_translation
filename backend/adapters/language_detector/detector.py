@@ -21,9 +21,12 @@ class RuleBasedLanguageDetector(LanguageDetector):
         "tum", "tumhara", "main", "hum", "woh", "yeh", "hain", "hai", "tha",
         "thi", "the", "hoga", "hogi", "honge", "karna", "karo", "karein", "karunga",
         "karungi", "bol", "batao", "suno", "samjhe", "rakh", "lete", "dunga", "degi",
-        "dikhana", "dikha", "chahiye", "aaj", "kal", "parson", "baje", "accha", "theek",
-        "bilkul", "bahut", "thoda", "kuch", "sab", "matlab", "shukriya", "dhanyawad",
-        "namaste", "bhai", "yaar", "saaf", "aawaz", "sakte", "sakti"
+        "dikhana", "dikha", "dikhaunga", "dikhaungi", "chahiye", "aaj", "kal", "parson", "baje",
+        "accha", "theek", "bilkul", "bahut", "thoda", "kuch", "sab", "matlab", "shukriya",
+        "dhanyawad", "namaste", "bhai", "yaar", "saaf", "aawaz", "sakte", "sakti",
+        "ke", "saath", "ka", "ki", "ko", "se", "me", "mein", "par", "raha", "rahi", "rahe",
+        "gaya", "gayi", "gaye", "chalo", "chaliye", "karenge", "karta", "karti", "karte",
+        "sahi", "badhiya", "kripya", "jaldi", "turant"
     }
 
     async def detect_language(self, text_or_audio: str | bytes) -> Language:

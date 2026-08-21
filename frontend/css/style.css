@@ -287,6 +287,73 @@ body {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
+.form-input.input-invalid {
+  border-color: rgba(244, 63, 94, 0.8) !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2) !important;
+}
+
+.form-input.input-valid {
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.label-with-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.label-with-hint label {
+  margin-bottom: 0 !important;
+}
+
+.room-validation-msg {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.room-validation-msg.error {
+  color: #fda4af;
+  font-weight: 600;
+}
+
+.room-validation-msg.success {
+  color: #6ee7b7;
+}
+
+.room-input-container {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.room-code-field {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.btn-generate {
+  white-space: nowrap;
+  padding: 8px 14px;
+  font-size: 13px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-help-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
 /* Toggle Switch */
 .toggle-box {
   background: rgba(15, 23, 42, 0.6);
@@ -651,6 +718,66 @@ input:checked + .slider:before {
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+/* Developer Diagnostics Box */
+.dev-diag-toggle-btn {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.dev-diag-toggle-btn.active {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+}
+
+.dev-diagnostics-box {
+  background: rgba(10, 15, 30, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  animation: fadeIn 0.2s ease;
+}
+
+.diag-title-tag {
+  color: #fcd34d;
+  font-weight: 600;
+  font-size: 11px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  row-gap: 4px;
+  column-gap: 8px;
+}
+
+.diag-key {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.diag-val {
+  color: #e2e8f0;
+  word-break: break-word;
+}
+
+.diag-val.highlight {
+  color: #38bdf8;
 }
 
 /* Welcome Box */

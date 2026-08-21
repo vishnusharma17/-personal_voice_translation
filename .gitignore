@@ -30,6 +30,12 @@ Thumbs.db
 *.pem
 *.key
 
+# Models and Large Weights
+models/
+*.bin
+*.pt
+*.onnx
+
 # Temporary files & session caches
 data/temp_audio/
 data/sessions/

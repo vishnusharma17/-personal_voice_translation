@@ -86,6 +86,31 @@
               <input type="text" id="speaker-name-input" class="form-input" value="Rajesh Sharma" placeholder="Enter your name">
             </div>
 
+            <div class="form-group">
+              <div class="label-with-hint">
+                <label for="room-code-input">Room Code</label>
+                <span id="room-validation-msg" class="room-validation-msg" role="status" aria-live="polite"></span>
+              </div>
+              <div class="room-input-container">
+                <input
+                  type="text"
+                  id="room-code-input"
+                  class="form-input room-code-field"
+                  value="PVT-DEMO"
+                  placeholder="e.g. PVT-DEMO, PVT-YRTIOV, CLIENT-001"
+                  autocomplete="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  maxlength="40"
+                  oninput="handleRoomCodeInput(this.value)"
+                >
+                <button type="button" class="btn btn-secondary btn-generate" onclick="generateNewRoom()" title="Generate Random Room Code">
+                  <span>🎲 New</span>
+                </button>
+              </div>
+              <p class="field-help-text">Enter matching Room Code on both devices (e.g. PVT-YRTIOV, CLIENT-001). Letters, numbers, hyphens and underscores allowed.</p>
+            </div>
+
             <div class="form-row">
               <div class="form-group half">
                 <label for="speak-lang-select">I Speak</label>
@@ -126,9 +151,6 @@
               <button class="btn btn-secondary" onclick="triggerManualBargeIn()" title="Interrupt active audio playback">
                 <span>⚡ Interrupt</span>
               </button>
-              <button class="btn btn-secondary" onclick="generateNewRoom()">
-                <span>New Room</span>
-              </button>
             </div>
 
             <!-- Live Audio Visualizer -->
@@ -147,8 +169,11 @@
                 <span class="hint-text">Simulate speech turn or use mic</span>
               </div>
               <div class="prompt-chips">
-                <button class="chip" onclick="simulatePrompt('Kal 11 baje meeting rakh lete hain, main demo bhi dikha dunga.')">
-                  "Kal 11 baje meeting rakh lete hain..."
+                <button class="chip" onclick="simulatePrompt('Kal 11 baje client ke saath meeting hai, main project ka demo dikhaunga.')">
+                  "Kal 11 baje client ke saath meeting hai..." (Hindi ➔ Eng)
+                </button>
+                <button class="chip" onclick="simulatePrompt('Yes, that sounds good. Let\'s have the meeting tomorrow.')">
+                  "Yes, that sounds good..." (Eng ➔ Hindi)
                 </button>
                 <button class="chip" onclick="simulatePrompt('kya aap meri aawaz sun sakte hain?')">
                   "kya aap meri aawaz sun sakte hain?"
@@ -158,7 +183,7 @@
                 </button>
               </div>
               <div class="input-with-send">
-                <input type="text" id="custom-prompt-input" class="form-input" placeholder="Type custom Hindi/Hinglish speech turn...">
+                <input type="text" id="custom-prompt-input" class="form-input" placeholder="Type custom speech turn in Hindi, Hinglish, or English...">
                 <button class="btn btn-accent" onclick="sendCustomPrompt()">Speak Turn</button>
               </div>
             </div>
@@ -172,6 +197,7 @@
                 <p class="card-subtitle">Real-time bidirectional speech with personal voice cloning</p>
               </div>
               <div class="feed-stats">
+                <button id="dev-diag-toggle-btn" class="dev-diag-toggle-btn" onclick="toggleDevDiagnostics()" title="Toggle Developer Diagnostics">🛠️ Dev Diagnostics</button>
                 <span id="turns-count-badge" class="count-pill">0 Turns</span>
                 <button class="btn-icon-only" title="Clear Feed" onclick="clearFeed()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

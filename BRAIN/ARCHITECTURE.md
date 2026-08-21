@@ -23,14 +23,14 @@ The reverse direction uses the same pipeline.
 4. **Audio/VAD layer**: Dynamic background noise floor tracking (-42 dBFS baseline), speech onset/offset segmentation.
 5. **Speech recognition adapter**: `LocalWhisperSTT` (local CTranslate2 INT8 model).
 6. **Language/context engine**: `RuleBasedLanguageDetector` (Devanagari, Romanized Hinglish, English detection).
-7. **Translation adapter**: `LocalTranslator` (Conversational code-mixing, DevOps jargon, technical numbers, and bidirectional rules).
+7. **Translation adapter**: `LocalTranslator` (Self-hosted NLLB-200 INT8 quantized neural machine translation with CTranslate2 engine + Romanized Hinglish phonetic transliteration layer).
 8. **Voice synthesis adapter**: `LocalVoiceSynthesizer` (Acoustic timbre preservation, formant tracking, 0.845 spectral similarity).
 9. **Session state**: Multi-room concurrent in-memory session graph with zero cross-room leakage.
 10. **Authentication & Authorization**: HMAC-SHA256 JWT access tokens (`/api/auth/token`).
 11. **Privacy & Data-retention controls**: Ephemeral session memory; zero raw call audio persistence; GDPR voice profile revocation (`DELETE /api/voice/profile/{user_id}`).
 12. **Security & Transport**: Security headers middleware (`X-Content-Type-Options`, `X-Frame-Options`, `Permissions-Policy`), reverse-proxy TLS termination (HTTPS/WSS).
-13. **Observability**: Per-turn latency telemetry breakdown (STT, translation, TTS, total) and health endpoint (`/api/health`).
-14. **Automated QA**: 72-test continuous integration suite covering unit, integration, live studio, concurrency stress, and two-party conversations.
+13. **Observability & Diagnostics**: Developer turn diagnostics telemetry (`source_audio`, `source_language`, `raw_stt_transcript`, `normalized_transcript`, `translated_text`, `target_language`, `tts_input_text`), per-turn latency breakdown, and health endpoint (`/api/health`).
+14. **Automated QA**: 75-test continuous integration suite including a 52-turn diverse conversational translation dataset evaluation (100% semantic pass rate).
 
 ## Production Transport & Deployment Architecture
 
