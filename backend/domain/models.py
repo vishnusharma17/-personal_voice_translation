@@ -13,6 +13,9 @@ class Language(str, Enum):
     HINDI = "hi"
     ENGLISH = "en"
     HINGLISH = "hi-en"
+    SPANISH = "es"
+    FRENCH = "fr"
+    GERMAN = "de"
     AUTO = "auto"
 
 

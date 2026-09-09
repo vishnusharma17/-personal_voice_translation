@@ -60,6 +60,26 @@ class TranslateTurnRequest(BaseModel):
     target_language: str | None = "en"
 
 
+@router.get("/api/session/{session_id}/transcript")
+async def get_session_transcript(session_id: str, format: str = "json"):
+    """Exports conversation transcript for a given session."""
+    history = session_gateway._conversation_history.get(session_id, [])
+    if format.lower() == "vtt":
+        vtt_lines = ["WEBVTT", ""]
+        for idx, t in enumerate(history, start=1):
+            vtt_lines.append(f"{idx}")
+            vtt_lines.append(f"00:00:{idx:02d}.000 --> 00:00:{idx+2:02d}.000")
+            vtt_lines.append(f"[{t.speaker_name}]: {t.translated_text}")
+            vtt_lines.append("")
+        return "\n".join(vtt_lines)
+
+    return {
+        "session_id": session_id,
+        "turns_count": len(history),
+        "history": [t.model_dump() for t in history],
+    }
+
+
 @router.post("/api/rooms/create", response_model=CreateRoomResponse)
 async def create_room(req: CreateRoomRequest):
     session = session_gateway.create_session(host_user_id=req.host_user_id, room_code=req.room_code)
