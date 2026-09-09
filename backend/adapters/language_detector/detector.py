@@ -29,6 +29,10 @@ class RuleBasedLanguageDetector(LanguageDetector):
         "sahi", "badhiya", "kripya", "jaldi", "turant"
     }
 
+    SPANISH_KEYWORDS = {"hola", "gracias", "por", "favor", "buenos", "dias", "como", "esta", "usted", "amigo", "si"}
+    FRENCH_KEYWORDS = {"bonjour", "merci", "oui", "non", "s'il", "vous", "plaît", "comment", "allez", "ami"}
+    GERMAN_KEYWORDS = {"hallo", "danke", "ja", "nein", "bitte", "wie", "geht", "gut", "freund", "morgen"}
+
     async def detect_language(self, text_or_audio: str | bytes) -> Language:
         if isinstance(text_or_audio, bytes):
             # If raw audio is passed without prior STT, default to AUTO
@@ -48,10 +52,18 @@ class RuleBasedLanguageDetector(LanguageDetector):
         if not words:
             return Language.ENGLISH
 
+        words_set = set(words)
+        if words_set.intersection(self.SPANISH_KEYWORDS):
+            return Language.SPANISH
+        if words_set.intersection(self.FRENCH_KEYWORDS):
+            return Language.FRENCH
+        if words_set.intersection(self.GERMAN_KEYWORDS):
+            return Language.GERMAN
+
         hinglish_matches = sum(1 for w in words if w in self.HINGLISH_KEYWORDS)
         hinglish_ratio = hinglish_matches / len(words)
 
-        if hinglish_ratio >= 0.25 or hinglish_matches > 0 and len(words) <= 4:
+        if hinglish_ratio >= 0.25 or (hinglish_matches > 0 and len(words) <= 4):
             return Language.HINGLISH
 
         return Language.ENGLISH

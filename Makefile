@@ -14,8 +14,11 @@ restart:
 	@chmod +x start.sh stop.sh restart.sh
 	@./restart.sh
 
+download-models:
+	python3 scripts/download_models.py
+
 test:
-	@.venv/bin/pytest -v tests/
+	python3 -m pytest -v tests/
 
 status:
 	@if [ -f .server.pid ] && kill -0 $$(cat .server.pid) 2>/dev/null; then \

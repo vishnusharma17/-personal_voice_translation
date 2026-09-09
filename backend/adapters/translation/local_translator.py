@@ -156,8 +156,16 @@ class LocalTranslator(Translator):
         # Neural CTranslate2 Inference
         if self._translator is not None and self._tokenizer is not None:
             # Map domain Language to NLLB language tokens
-            src_nllb = "eng_Latn" if source_language == Language.ENGLISH else "hin_Deva"
-            tgt_nllb = "hin_Deva" if target_language in (Language.HINDI, Language.HINGLISH) else "eng_Latn"
+            nllb_lang_map = {
+                Language.ENGLISH: "eng_Latn",
+                Language.HINDI: "hin_Deva",
+                Language.HINGLISH: "hin_Deva",
+                Language.SPANISH: "spa_Latn",
+                Language.FRENCH: "fra_Latn",
+                Language.GERMAN: "deu_Latn",
+            }
+            src_nllb = nllb_lang_map.get(source_language, "eng_Latn")
+            tgt_nllb = nllb_lang_map.get(target_language, "eng_Latn")
 
             # When translating Hindi/Hinglish to English, transliterate Roman script to Devanagari
             input_text = clean
