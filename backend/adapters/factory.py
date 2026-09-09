@@ -14,6 +14,7 @@ from backend.adapters.translation.mock_translator import MockTranslator
 from backend.adapters.tts.elevenlabs_tts import ElevenLabsTTS
 from backend.adapters.tts.local_voice_synthesizer import LocalVoiceSynthesizer
 from backend.adapters.tts.mock_tts import MockVoiceSynthesizer
+from backend.adapters.tts.xtts_synthesizer import CoquiXTTSVoiceSynthesizer
 from backend.adapters.voice_profile.secure_profile_service import (
     SecureVoiceProfileService,
 )
@@ -57,6 +58,8 @@ def get_tts_adapter() -> VoiceSynthesizer:
     provider = settings.tts_provider.lower()
     if provider in ("local", "neural", "piper"):
         return LocalVoiceSynthesizer()
+    elif provider in ("xtts", "coqui"):
+        return CoquiXTTSVoiceSynthesizer()
     elif provider == "elevenlabs":
         if settings.offline_mode:
             raise RuntimeError("Cannot use external ElevenLabs API when OFFLINE_MODE/LOCAL_ONLY is enabled.")
